@@ -502,12 +502,18 @@ function openMark(id){
     <div class="mgrid">${marks.map(m=>{ const us=use[m.id]; const others=us?us.units.filter(x=>ownerOf(x)!==me):[];
       const lab=others.length?'使用中: '+others.flatMap(x=>x.seats.map(y=>seatTag(d,y))).filter((v,i,a)=>a.indexOf(v)===i).join(','):'';
       return `<button class="mbtn" data-m="${m.id}" data-used="${others.length?1:0}" aria-pressed="${u.mark===m.id}">${chip(m.id,34)}<span>${m.name}</span><span class="used">${lab}</span></button>`; }).join('')}</div>
+    <div id="dupc" hidden style="margin-top:12px;padding:12px;border-radius:14px;background:var(--free-bg)"><div style="font-weight:700" id="dupt"></div>
+      <div class="row" style="margin-top:8px"><button class="pbtn" id="dupg" style="flex:1">同じ団体にする</button><button class="sbtn" id="dupd" style="flex:1">別の人で重複</button></div></div>
     <div class="row"><button class="sbtn" data-act="closeSheet" style="flex:1">閉じる</button>${u.mark?'<button class="dbtn" id="mclear" style="flex:1">印を外す</button>':''}</div>
     <div class="row"><button class="sbtn" id="mlabel" style="flex:1">名前・一言を入れる</button></div>
     ${s?'<div class="row"><button class="dbtn" id="mempty" data-confirm="もう一度タップで空席にする" style="flex:1">この席を空ける</button></div>':''}`, sh=>{
     sh.querySelectorAll('.mbtn').forEach(b=>b.onclick=()=>{
       const mid=b.dataset.m;
-      if(b.dataset.used==='1' && armed!==mid){ sh.querySelectorAll('.mbtn.armed').forEach(x=>{x.classList.remove('armed');}); armed=mid; b.classList.add('armed'); b.querySelector('.used').textContent='もう一度タップで重複して付ける'; return; }
+      if(b.dataset.used==='1'){ sh.querySelectorAll('.mbtn.armed').forEach(x=>x.classList.remove('armed')); b.classList.add('armed');
+        const dc=sh.querySelector('#dupc'); dc.hidden=false; sh.querySelector('#dupt').textContent=`${MARK[mid].name}は${b.querySelector('.used').textContent.replace('使用中: ','')}に付いています`;
+        sh.querySelector('#dupg').onclick=()=>{ closeSheet(); joinGroupByMark(id, mid); };
+        sh.querySelector('#dupd').onclick=()=>{ closeSheet(); commit(dd=>{ if(!dd.seats[id]) dd.seats[id]={num:null, gid:null, label:'', ltype:'num', mark:null}; setMarkOnUnit(dd, unitOfSeat(dd,id), mid); }, `${SEAT[id].name}に${MARK[mid].name}を付けました(重複)`); };
+        dc.scrollIntoView({block:'nearest', behavior:'smooth'}); return; }
       closeSheet(); commit(dd=>{ if(!dd.seats[id]) dd.seats[id]={num:null, gid:null, label:'', ltype:'num', mark:null}; setMarkOnUnit(dd, unitOfSeat(dd,id), mid); }, `${SEAT[id].name}に${MARK[mid].name}を付けました`);
     });
     sh.querySelector('#mlabel').onclick=()=>{ closeSheet(); openEdit(id); };
@@ -521,6 +527,27 @@ function openMark(id){
       openMark(id);
     });
   });
+}
+/* 使用中の印を選んで「同じ団体にする」: その印の人(団体)にこの席を加える。相手が個人なら新しい団体を作る */
+function joinGroupByMark(id, mid){
+  let msg='';
+  commit(d=>{
+    if(!d.seats[id]) d.seats[id]={num:null, gid:null, label:'', ltype:'num', mark:null};
+    const me=d.seats[id];
+    const target=units(d).find(u=>u.mark===mid && !u.seats.includes(id)); if(!target) return;
+    let g = target.gid && d.groups[target.gid];
+    if(!g){
+      const x=d.seats[target.seats[0]];
+      const gid='g'+Date.now().toString(36)+d.groupSeq; const letter=CONFIG.groupLetters[d.groupSeq % CONFIG.groupLetters.length]; d.groupSeq++;
+      g=d.groups[gid]={id:gid, letter, num:x.num??null, size:1, same:true, mark:mid}; x.gid=gid;
+    } else if(!g.same){ me.mark=mid; }
+    const old=me.gid && me.gid!==g.id && d.groups[me.gid];
+    me.gid=g.id;
+    if(old){ const left=ORDER.filter(k=>d.seats[k]&&d.seats[k].gid===old.id).length; if(left) old.size=left; else delete d.groups[old.id]; }
+    g.size=ORDER.filter(k=>d.seats[k]&&d.seats[k].gid===g.id).length;
+    msg=`${SEAT[id].name}を団体${g.letter}(${MARK[mid].name})に加えました`;
+  }, '');
+  if(msg) toast(msg);
 }
 function mergeTail(){
   const d=app.day, n=units(d).length, use=usage(d);
