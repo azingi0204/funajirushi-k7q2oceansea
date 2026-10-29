@@ -29,21 +29,21 @@ body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:1
   padding-left:max(12px,env(safe-area-inset-left,0px));padding-right:max(12px,env(safe-area-inset-right,0px))}
 button{font:inherit;color:inherit;cursor:pointer;border:0;background:none}
 button:focus-visible,input:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
-.app{max-width:520px;margin:0 auto;padding-block:8px calc(84px + env(safe-area-inset-bottom,0px))}
-.top{display:flex;align-items:center;gap:8px;padding-block:4px 8px}
+.app{max-width:520px;margin:0 auto;padding-block:4px calc(70px + env(safe-area-inset-bottom,0px))}
+.top{display:flex;align-items:center;gap:8px;padding-block:2px 6px}
 .top .date{flex:1;min-width:0;font-weight:700;font-size:15px}
 .top .date span{display:block;font-weight:500;font-size:12px;color:var(--muted)}
-.hbtn{display:flex;align-items:center;gap:4px;min-height:48px;padding:0 14px;border-radius:12px;background:var(--surface);border:1px solid var(--line);font-weight:700;font-size:15px}
+.hbtn{display:flex;align-items:center;gap:4px;min-height:44px;padding:0 14px;border-radius:12px;background:var(--surface);border:1px solid var(--line);font-weight:700;font-size:15px}
 .hbtn:disabled{opacity:.35}
 .hbtn .cnt{font-family:var(--f-num);font-size:14px;color:var(--muted)}
-.status{display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:8px 8px 8px 14px;margin-bottom:10px;min-height:64px}
+.status{display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:6px 6px 6px 14px;margin-bottom:6px;min-height:56px}
 .status .txt{flex:1;min-width:0}
-.status .big{font-weight:700;font-size:20px;line-height:1.2}
-.status .big b{font-family:var(--f-num);font-size:30px;margin:0 2px}
-.status .sub{font-size:13px;color:var(--muted)}
+.status .big{font-weight:700;font-size:18px;line-height:1.15}
+.status .big b{font-family:var(--f-num);font-size:26px;margin:0 2px}
+.status .sub{font-size:12px;color:var(--muted);line-height:1.3}
 .status.group{background:var(--free-bg);border-color:var(--accent)}
-.pbtn{min-height:48px;padding:0 16px;border-radius:12px;background:var(--accent);color:var(--accent-ink);font-weight:700;white-space:nowrap}
-.sbtn{min-height:48px;padding:0 16px;border-radius:12px;background:var(--surface);border:1.5px solid var(--ink);font-weight:700;white-space:nowrap}
+.pbtn{min-height:44px;padding:0 16px;border-radius:12px;background:var(--accent);color:var(--accent-ink);font-weight:700;white-space:nowrap}
+.sbtn{min-height:44px;padding:0 16px;border-radius:12px;background:var(--surface);border:1.5px solid var(--ink);font-weight:700;white-space:nowrap}
 .dbtn{min-height:48px;padding:0 16px;border-radius:12px;background:var(--danger-bg);color:var(--danger);font-weight:700;border:1.5px solid var(--danger)}
 .banner{border-radius:12px;padding:10px 12px;margin-bottom:10px;font-size:14px;display:flex;gap:10px;align-items:center}
 .banner.warn{background:var(--warn-bg);color:var(--warn-ink)}
@@ -53,7 +53,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--accent);outline
 .banner .bx{min-height:44px;min-width:44px;padding:0;border:0;background:transparent;font-size:22px;line-height:1;flex:none}
 .banner button{min-height:40px;padding:0 12px;border-radius:10px;background:var(--surface);border:1px solid currentColor;font-weight:700;font-size:14px;color:inherit}
 .boatwrap{display:flex;justify-content:center}
-.boat{position:relative;width:min(100%,max(280px,calc((100dvh - 250px)/1.8)));aspect-ratio:1/1.8;container-type:inline-size;user-select:none;-webkit-user-select:none}
+.boat{position:relative;width:min(100%,max(260px,calc((100dvh - 230px)/1.7)));aspect-ratio:1/1.8;container-type:inline-size;user-select:none;-webkit-user-select:none}
 .boat svg{position:absolute;inset:0;width:100%;height:100%}
 .hull{fill:var(--deck);stroke:var(--ink);stroke-width:1.6}
 .cabin{fill:var(--surface);stroke:var(--muted);stroke-width:1.2}
@@ -130,7 +130,12 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--accent);outline
 .mbtn.armed{border-color:var(--danger);background:var(--danger-bg)}
 .mbtn.armed .used{color:var(--danger);font-weight:700}
 .full{width:100%;margin-top:12px}
-.tailsw{display:flex;align-items:center;gap:10px;margin:-2px 0 10px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+.chipbtn{min-height:34px;padding:0 12px;border-radius:999px;border:1.5px solid var(--line);background:var(--bg);font-size:13px;font-weight:500;color:var(--ink)}
+.chipbtn b{font-weight:700}
+.chipbtn.acc{border-color:var(--accent);color:var(--accent);font-weight:700}
+.tailsw{display:flex;align-items:center;gap:10px;margin:0 0 6px}
+.tailsw .seg button{min-height:40px}
 .tailsw>span{font-weight:700;font-size:14px;flex:none}
 .tailsw .seg{flex:1;margin-top:0}
 .rbtns{display:flex;gap:8px;padding-bottom:12px}
@@ -343,20 +348,14 @@ function render(){
       h+=`<div class="status group"><div class="txt"><div class="big">団体${esc(g.letter)} ${g.num!=null?`<b>${g.num}</b>番`:''}</div><div class="sub">残り${d.groupMode.remaining}人。空き席をタップ</div></div><button class="sbtn" data-act="endGroup">団体終了</button></div>`;
       if(!emptyCount(d)) h+=`<div class="banner warn"><div class="grow">空き席がありません。「団体終了」を押してください。</div></div>`;
     } else {
-      h+= d.noKuji
-        ? `<div class="status"><div class="txt"><div class="big">くじなし</div><div class="sub">${emptyCount(d)?'空き席をタップで名前・一言を入力':'満席です'}</div></div><button class="pbtn" data-act="startGroup" ${emptyCount(d)<2?'disabled style="opacity:.4"':''}>団体</button></div>`
-        : `<div class="status"><div class="txt"><div class="big">次は<b>${d.nextNum}</b>番</div><div class="sub">${emptyCount(d)?'空き席をタップで決定':'満席です'}</div></div><button class="pbtn" data-act="startGroup" ${emptyCount(d)<2?'disabled style="opacity:.4"':''}>団体</button></div>`;
+      const chips = `<div class="chips"><button class="chipbtn" data-act="kujiToggle" aria-label="くじ番号の使う・使わないを切り替え">くじ番号: <b>${d.noKuji?'使わない':'使う'}</b> ⇄</button>${Object.keys(d.seats).length?'':'<button class="chipbtn acc" data-act="openCodeSheet">共有コードで開く</button>'}</div>`;
+      h+= `<div class="status"><div class="txt"><div class="big">${d.noKuji?'くじなし':`次は<b>${d.nextNum}</b>番`}</div><div class="sub">${!emptyCount(d)?'満席です':d.noKuji?'空き席をタップで名前・一言':'空き席をタップで決定'}</div>${chips}</div><button class="pbtn" data-act="startGroup" ${emptyCount(d)<2?'disabled style="opacity:.4"':''}>団体</button></div>`;
     }
-    if(!d.groupMode) h+=`<div class="tailsw"><span>くじ番号</span><div class="seg"><button data-act="kujiOn" aria-pressed="${!d.noKuji}">使う</button><button data-act="kujiOff" aria-pressed="${!!d.noKuji}">使わない</button></div></div>`;
-    if(!Object.keys(d.seats).length) h+=`<div class="banner info"><div class="grow">共有コードを受け取った方は、ここから開けます。</div><button data-act="openCodeSheet">コードで開く</button></div>`;
     h+=boatHTML(d,'kuji');
   } else if(tab==='mark'){
     const n=units(d).length, max=CONFIG.marks.length, dups=dupMarks(d), unset=units(d).filter(u=>!u.mark).length;
-    h+=`<div class="status"><div class="txt"><div class="big">印 <b>${n}</b>通り<span class="sub" style="font-size:14px"> / 最大${max}</span></div><div class="sub">${!n?'まだ誰もいません':unset?`印がまだ ${unset}`:'全員に印が付いています'}</div></div></div>
-    <div class="tailsw"><span>尻尾切り</span><div class="seg"><button data-act="mergeTail" aria-pressed="${!d.tailSplit}">1種類</button><button data-act="splitTail" aria-pressed="${d.tailSplit}">上・下に分ける</button></div></div>`;
+    h+=`<div class="status"><div class="txt"><div class="big">印 <b>${n}</b>通り<span class="sub" style="font-size:14px"> / 最大${max}</span></div><div class="sub">${!n?'席をタップで印(くじ番号なしでも可)':unset?`印がまだ ${unset}`:'全員に印が付いています'}</div><div class="chips"><button class="chipbtn" data-act="${d.tailSplit?'mergeTail':'splitTail'}" aria-label="付け済みの尻尾切りを一括で切り替え">尻尾切り一括: <b>${d.tailSplit?'上・下':'1種類'}</b> ⇄</button></div></div></div>`;
     // 重複・不足の警告は出さない(所有者裁定 2026-10-29: きっちり管理する用途ではない)
-    if(!n) h+=`<div class="muted" style="margin:-2px 0 8px">席をタップすると、くじの番号がなくても印を付けられます。</div>`;
-    else h+=`<div class="muted" style="margin:-2px 0 8px">席をタップして印を選ぶ。空席もそのまま印を付けられます。赤い輪は印がまだの席です。</div>`;
     h+=boatHTML(d,'mark');
   } else if(tab==='quick'){
     h+=quickHTML(d);
@@ -366,6 +365,7 @@ function render(){
   const el=document.getElementById('app');
   el.className='app mode-'+(ui.editLayout?'edit':tab);
   el.innerHTML=h;
+  fitBoat();
 }
 
 function quickHTML(d){
@@ -573,6 +573,7 @@ document.addEventListener('click', e=>{
       openRecord:()=>openRecord(a.dataset.id), shareRecord:()=>openShare('day', a.dataset.id), shareAll:()=>openShare('all'), importCode:()=>importFromBox(),
       openCodeSheet:()=>openCodeSheet(),
       dismiss:()=>{ app.dismissed=app.dismissed||{}; app.dismissed[app.day.id+':'+a.dataset.k]=a.dataset.sig; save(); render(); },
+      kujiToggle:()=>commit(d=>{ d.noKuji=!d.noKuji; }, app.day.noKuji?'くじ番号を使います':'くじ番号なしで入力します'),
       kujiOn:()=>{ if(app.day.noKuji) commit(d=>{ d.noKuji=false; }, 'くじ番号を使います'); },
       kujiOff:()=>{ if(!app.day.noKuji) commit(d=>{ d.noKuji=true; }, 'くじ番号なしで入力します'); }, deleteRecord:()=>deleteRecord(a.dataset.id),
       gotoLog:()=>{app.tab='log'; render();}, gotoQuick:()=>{app.tab='quick'; render();},
@@ -800,6 +801,22 @@ function setupHosted(){
   try{ navigator.storage && navigator.storage.persist && navigator.storage.persist(); }catch(e){}
 }
 
+
+/* 船の図を、画面の残りの高さにぴったり収める。縦が足りない時は縦横比を 1:1.8→1:1.6 まで詰めて、席の丸を小さくしない */
+const FIT={minAspect:1.6, maxAspect:1.8, minWidth:200, gap:6};
+function fitBoat(){
+  const boat=document.getElementById('boat'); if(!boat) return;
+  const W=boat.parentElement.clientWidth;
+  const tabs=document.querySelector('.tabs'); const tabH=tabs?tabs.offsetHeight:0;
+  const top=boat.getBoundingClientRect().top + (window.scrollY||0);
+  const H=Math.max(200, window.innerHeight - top - tabH - FIT.gap);
+  const width=Math.max(FIT.minWidth, Math.min(W, H/FIT.minAspect));
+  const aspect=Math.max(FIT.minAspect, Math.min(FIT.maxAspect, H/width));
+  boat.style.width=Math.round(width)+'px'; boat.style.aspectRatio=`1 / ${aspect.toFixed(3)}`;
+}
+try{ document.fonts && document.fonts.ready.then(fitBoat); }catch(e){}
+window.addEventListener('resize', fitBoat); window.addEventListener('orientationchange', ()=>setTimeout(fitBoat,200));
+if(window.visualViewport) visualViewport.addEventListener('resize', ()=>{ if(!document.querySelector('.overlay')) fitBoat(); });
 /* 画面の一番上で下に引っぱると更新(ホーム画面から開くと更新ボタンが無いため) */
 async function refreshApp(){
   try{ const r = navigator.serviceWorker && await navigator.serviceWorker.getRegistration(); if(r) await r.update(); }catch(e){}
