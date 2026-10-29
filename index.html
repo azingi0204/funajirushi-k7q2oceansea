@@ -454,6 +454,21 @@ function assignSeat(id){
     const n=d0.nextNum; commit(d=>{ d.seats[id]={num:d.nextNum, gid:null, label:'', ltype:'num', mark:null}; d.nextNum++; }, `${SEAT[id].name}に${n}番`);
   }
 }
+/* 番号のない席(くじなしの間や印画面で入れた席)に、次のくじ番号を付ける。名前・一言・印はそのまま。団体なら全員に同じ番号 */
+function numberSeat(id){
+  const d0=app.day, s0=d0.seats[id], g0=s0.gid&&d0.groups[s0.gid];
+  if(d0.groupMode && !g0){ // 団体を決めている途中なら、その団体に加える
+    const g=d0.groups[d0.groupMode.gid];
+    commit(d=>{ const t=d.seats[id]; t.num=g.num; t.gid=g.id; d.groupMode.remaining--; if(d.groupMode.remaining<=0){ d.groupMode=null; if(g.num!=null) d.nextNum=g.num+1; } },
+      `${SEAT[id].name}を団体${g.letter}に${g.num!=null?`(${g.num}番)`:''}`);
+    return;
+  }
+  const n=d0.nextNum;
+  commit(d=>{ const t=d.seats[id], g=t.gid&&d.groups[t.gid];
+    if(g){ g.num=d.nextNum; ORDER.forEach(k=>{ if(d.seats[k]&&d.seats[k].gid===g.id) d.seats[k].num=d.nextNum; }); }
+    else t.num=d.nextNum;
+    d.nextNum++; }, g0 ? `団体${g0.letter}に${n}番を付けました` : `${SEAT[id].name}に${n}番`);
+}
 function openEdit(id){
   const isNew=!app.day.seats[id];
   const s=app.day.seats[id] || {num:null, gid:null, label:'', ltype:'name', mark:null}; const g=s.gid&&app.day.groups[s.gid];
@@ -586,7 +601,12 @@ document.addEventListener('click', e=>{
   }
   const seat=e.target.closest('[data-seat]');
   if(seat && !ui.editLayout){ const id=seat.dataset.seat, s=app.day.seats[id];
-    if(app.tab==='kuji'){ s ? openEdit(id) : (app.day.noKuji && !app.day.groupMode) ? openEdit(id) : assignSeat(id); }
+    if(app.tab==='kuji'){
+      const kuji = !app.day.noKuji || app.day.groupMode;
+      if(!s) kuji ? assignSeat(id) : openEdit(id);
+      else if(s.num==null && !app.day.noKuji) numberSeat(id);   // 番号のない席は、くじ番号を使う時は1タップで番号を付ける
+      else openEdit(id);
+    }
     else if(app.tab==='mark'){ openMark(id); }
   }
 });
