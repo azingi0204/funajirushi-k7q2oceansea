@@ -46,6 +46,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--accent);outline
 .banner.err{background:var(--danger-bg);color:var(--danger)}
 .banner.info{background:var(--free-bg);color:var(--ink)}
 .banner .grow{flex:1;min-width:0}
+.banner .bx{min-height:44px;min-width:44px;padding:0;border:0;background:transparent;font-size:22px;line-height:1;flex:none}
 .banner button{min-height:40px;padding:0 12px;border-radius:10px;background:var(--surface);border:1px solid currentColor;font-weight:700;font-size:14px;color:inherit}
 .boatwrap{display:flex;justify-content:center}
 .boat{position:relative;width:min(100%,max(280px,calc((100dvh - 250px)/1.8)));aspect-ratio:1/1.8;container-type:inline-size;user-select:none;-webkit-user-select:none}
@@ -258,6 +259,9 @@ function redo(){ if(!app.future.length) return; app.past.push(snap()); const s=J
 function buzz(){ try{ navigator.vibrate && navigator.vibrate(12); }catch(e){} }
 
 /* ===== 表示部品 ===== */
+/* 閉じた注意書き: 日ごと・種類ごとに「閉じた時の状態」を覚え、状態が変われば再表示 */
+const isDismissed = (k, sig) => ((app.dismissed||{})[app.day.id+':'+k]) === String(sig);
+const closeBtn = (k, sig) => `<button class="bx" data-act="dismiss" data-k="${k}" data-sig="${esc(String(sig))}" aria-label="この注意を閉じる">×</button>`;
 const esc = s => String(s??'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const ICON = {
   none: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><circle cx="12" cy="12" r="8.5"/><path d="M6 18L18 6"/></svg>',
@@ -347,8 +351,9 @@ function render(){
     const n=units(d).length, max=CONFIG.marks.length, dups=dupMarks(d), unset=units(d).filter(u=>!u.mark).length;
     h+=`<div class="status"><div class="txt"><div class="big">印 <b>${n}</b>通り<span class="sub" style="font-size:14px"> / 最大${max}</span></div><div class="sub">${!n?'まだ誰もいません':unset?`印がまだ ${unset}`:'全員に印が付いています'}</div></div></div>
     <div class="tailsw"><span>尻尾切り</span><div class="seg"><button data-act="mergeTail" aria-pressed="${!d.tailSplit}">1種類</button><button data-act="splitTail" aria-pressed="${d.tailSplit}">上・下に分ける</button></div></div>`;
-    if(n>CONFIG.marks.length) h+=`<div class="banner err"><div class="grow">印が足りません(${n}通り)。同じ印を重複して付けてください。</div></div>`;
-    if(dups.length) h+=`<div class="banner err"><div class="grow">同じ印が別の人に付いています: ${dups.map(m=>MARK[m].name).join('、')}</div><button data-act="gotoQuick">確認</button></div>`;
+    if(n>CONFIG.marks.length && !isDismissed('short', n)) h+=`<div class="banner err"><div class="grow">印が足りません(${n}通り)。同じ印を重複して付けてください。</div>${closeBtn('short', n)}</div>`;
+    const dsig=dups.slice().sort().join(',');
+    if(dups.length && !isDismissed('dup', dsig)) h+=`<div class="banner err"><div class="grow">同じ印が別の人に付いています: ${dups.map(m=>MARK[m].name).join('、')}</div><button data-act="gotoQuick">確認</button>${closeBtn('dup', dsig)}</div>`;
     if(!n) h+=`<div class="muted" style="margin:-2px 0 8px">席をタップすると、くじの番号がなくても印を付けられます。</div>`;
     else h+=`<div class="muted" style="margin:-2px 0 8px">席をタップして印を選ぶ。空席もそのまま印を付けられます。赤い輪は印がまだの席です。</div>`;
     h+=boatHTML(d,'mark');
@@ -567,6 +572,7 @@ document.addEventListener('click', e=>{
     ({undo, redo, startGroup:openGroupStart, endGroup, mergeTail, splitTail, newDay, saveRecord,
       openRecord:()=>openRecord(a.dataset.id), shareRecord:()=>openShare('day', a.dataset.id), shareAll:()=>openShare('all'), importCode:()=>importFromBox(),
       openCodeSheet:()=>openCodeSheet(),
+      dismiss:()=>{ app.dismissed=app.dismissed||{}; app.dismissed[app.day.id+':'+a.dataset.k]=a.dataset.sig; save(); render(); },
       kujiOn:()=>{ if(app.day.noKuji) commit(d=>{ d.noKuji=false; }, 'くじ番号を使います'); },
       kujiOff:()=>{ if(!app.day.noKuji) commit(d=>{ d.noKuji=true; }, 'くじ番号なしで入力します'); }, deleteRecord:()=>deleteRecord(a.dataset.id),
       gotoLog:()=>{app.tab='log'; render();}, gotoQuick:()=>{app.tab='quick'; render();},
