@@ -21,6 +21,10 @@
   --warn-bg:#3A2E0E; --warn-ink:#F2D27A; --seat:#22313A; --shade:rgba(0,0,0,.6); color-scheme:dark}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{height:100%}
+html{touch-action:manipulation}  /* ダブルタップでのズームを止める(2本指の拡大は残す) */
+body{overscroll-behavior-y:contain}  /* ブラウザ標準の引っぱり更新と二重にならないように */
+.ptr{position:fixed;left:50%;top:calc(env(safe-area-inset-top,0px) + 6px);transform:translate(-50%,0);z-index:50;background:var(--surface);color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:8px 16px;font-size:14px;font-weight:700;pointer-events:none;box-shadow:0 2px 8px rgba(0,0,0,.12)}
+.ptr.ready{color:var(--accent);border-color:var(--accent)}
 body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.5;
   padding-left:max(12px,env(safe-area-inset-left,0px));padding-right:max(12px,env(safe-area-inset-right,0px))}
 button{font:inherit;color:inherit;cursor:pointer;border:0;background:none}
@@ -405,7 +409,7 @@ function logHTML(){
     </div>`;
   if(HOSTED && !STANDALONE) h+=`<div class="card"><h2>ホーム画面に追加してください</h2><div class="muted">ホーム画面から開くと、電波がなくても動き、データも消えにくくなります。<br>iPhone: 下の共有ボタン →「ホーム画面に追加」<br>Android: 右上の︙ →「ホーム画面に追加」</div></div>`;
   h+=`<div class="card"><h2>共有された内容を読み込む</h2><div class="muted">受け取ったリンクかコードを貼り付けてください。</div>
-    <div class="field"><textarea id="impbox" rows="3" style="width:100%;font:inherit;font-size:14px;padding:10px;border-radius:12px;border:1.5px solid var(--line);background:var(--bg);color:var(--ink)" placeholder="ここに貼り付け"></textarea><div class="err" id="imperr"></div></div>
+    <div class="field"><textarea id="impbox" rows="3" style="width:100%;font:inherit;font-size:16px;padding:10px;border-radius:12px;border:1.5px solid var(--line);background:var(--bg);color:var(--ink)" placeholder="ここに貼り付け"></textarea><div class="err" id="imperr"></div></div>
     <button class="pbtn full" data-act="importCode">読み込む</button></div>`;
   h+=`<div class="card"><h2>データの保存</h2><div class="muted">${cloud.state==='off'?'この端末の中に保存しています。機種変更やデータ消去に備えて、時々「全部をバックアップ」でコードをLINEなどに残してください。':'スマホの中に加えて、Claude側にも控えを保存します(本人だけが見られます)。キャッシュを消しても、開き直せば控えから戻ります。'}</div><div id="cloudst" style="margin-top:8px;font-weight:700">${cloudText()}</div>
     <button class="sbtn full" data-act="shareAll">全部をバックアップ(コードを作る)</button></div>`;
@@ -697,7 +701,7 @@ async function openShare(kind, id){
   const base = HOSTED ? location.origin+location.pathname : '';
   const text = HOSTED ? `${base}#s=${code}` : code;
   openSheet(`<h3>${title}</h3><div class="muted">${HOSTED ? (kind==='day'?'このリンクを送ると、相手が押すだけで開けます。':'このリンクを、自分宛てのLINEやメモに残してください。開くと全部が戻ります。') : '「コピー」を押して、LINEなどにそのまま貼って送ってください。相手は船じるしを開いて「コードで開く」に貼り付けるだけで、同じ内容が映ります。'}</div>
-    <div class="field"><textarea id="shbox" readonly rows="4" style="width:100%;font-family:var(--f-num);font-size:13px;padding:10px;border-radius:12px;border:1.5px solid var(--line);background:var(--bg);color:var(--ink);word-break:break-all">${esc(text)}</textarea></div>
+    <div class="field"><textarea id="shbox" readonly rows="4" style="width:100%;font-family:var(--f-num);font-size:16px;padding:10px;border-radius:12px;border:1.5px solid var(--line);background:var(--bg);color:var(--ink);word-break:break-all">${esc(text)}</textarea></div>
     <div class="row">${HOSTED && navigator.share ? '<button class="pbtn" id="shsend" style="flex:1">LINEなどで送る</button>' : ''}<button class="sbtn" id="shcopy" style="flex:1">コピー</button></div>
     <div class="row"><button class="sbtn" data-act="closeSheet" style="flex:1">閉じる</button></div>`, sh=>{
     const box=sh.querySelector('#shbox');
@@ -736,7 +740,7 @@ async function decodeDayCode(code){
 }
 function openCodeSheet(){
   openSheet(`<h3>共有コードで開く</h3><div class="muted">LINEなどで受け取ったコードを長押しでコピーして、下に貼り付けてください。</div>
-    <div class="field"><textarea id="codebox" rows="4" style="width:100%;font:inherit;font-size:14px;padding:10px;border-radius:12px;border:1.5px solid var(--line);background:var(--bg);color:var(--ink)" placeholder="ここに貼り付け"></textarea><div class="err" id="codeerr"></div></div>
+    <div class="field"><textarea id="codebox" rows="4" style="width:100%;font:inherit;font-size:16px;padding:10px;border-radius:12px;border:1.5px solid var(--line);background:var(--bg);color:var(--ink)" placeholder="ここに貼り付け"></textarea><div class="err" id="codeerr"></div></div>
     <div class="row"><button class="sbtn" data-act="closeSheet" style="flex:1">やめる</button><button class="pbtn" id="codeok" style="flex:2">開く</button></div>`, sh=>{
     const box=sh.querySelector('#codebox'), err=sh.querySelector('#codeerr');
     box.oninput=()=>{ err.textContent=''; };
@@ -795,6 +799,30 @@ function setupHosted(){
   try{ if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js'); }catch(e){}
   try{ navigator.storage && navigator.storage.persist && navigator.storage.persist(); }catch(e){}
 }
+
+/* 画面の一番上で下に引っぱると更新(ホーム画面から開くと更新ボタンが無いため) */
+async function refreshApp(){
+  try{ const r = navigator.serviceWorker && await navigator.serviceWorker.getRegistration(); if(r) await r.update(); }catch(e){}
+  location.reload();
+}
+(function setupPullToRefresh(){
+  const TH=80; let y0=null, dist=0;
+  const ind=document.createElement('div'); ind.className='ptr'; ind.hidden=true; ind.setAttribute('aria-hidden','true'); document.body.appendChild(ind);
+  const atTop=()=> (window.scrollY||document.documentElement.scrollTop||0) <= 0;
+  document.addEventListener('touchstart', e=>{
+    if(e.touches.length!==1 || !atTop() || ui.editLayout || document.querySelector('.overlay')){ y0=null; return; }
+    y0=e.touches[0].clientY; dist=0;
+  }, {passive:true});
+  document.addEventListener('touchmove', e=>{
+    if(y0==null) return; dist=e.touches[0].clientY-y0;
+    if(dist>16 && atTop()){ const d=Math.min(dist,140)*0.5; ind.hidden=false; ind.style.transform=`translate(-50%, ${d}px)`;
+      const ready=dist>TH; ind.classList.toggle('ready',ready); ind.textContent= ready?'離すと更新':'↓ 引っぱって更新'; }
+    else ind.hidden=true;
+  }, {passive:true});
+  const end=()=>{ if(y0==null) return; y0=null;
+    if(dist>TH && !ind.hidden){ ind.textContent='更新中…'; refreshApp(); } else ind.hidden=true; };
+  document.addEventListener('touchend', end); document.addEventListener('touchcancel', ()=>{ y0=null; ind.hidden=true; });
+})();
 
 setupHosted(); load(); render(); cloudInit(); importFromHash();
 window.addEventListener('hashchange', importFromHash);
