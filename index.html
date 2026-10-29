@@ -1,0 +1,800 @@
+<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}[hidden]{display:none!important}</style></head><body><title>船じるし</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@500;700&family=Barlow+Condensed:wght@600;700&display=swap">
+<style>
+/* 配置: 上=日付と戻す/やり直す、中央=船(画面高に合わせて全体が見える)、下=タブ。色は印だけに使い、UIは海図のような墨と深い潮色で抑える */
+:root{
+  --bg:#EDF1EF; --surface:#FFFFFF; --deck:#E1E8E4; --ink:#13212A; --muted:#5A6A71; --line:#C7D2CF;
+  --accent:#0D4C63; --accent-ink:#FFFFFF; --free-bg:#D6E9EE; --danger:#B3261E; --danger-bg:#FBE4E2;
+  --warn-bg:#FFF2CF; --warn-ink:#634500; --seat:#FFFFFF; --shade:rgba(10,20,25,.45);
+  --f-body:"Zen Kaku Gothic New","Hiragino Sans","Noto Sans JP",system-ui,sans-serif;
+  --f-num:"Barlow Condensed","Roboto Condensed","Arial Narrow",system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0C1417; --surface:#16222A; --deck:#1B2A31; --ink:#E4EDEF; --muted:#94A5AB; --line:#2E3E45;
+  --accent:#6DBBD6; --accent-ink:#04212B; --free-bg:#163B47; --danger:#FF8A80; --danger-bg:#3A1A18;
+  --warn-bg:#3A2E0E; --warn-ink:#F2D27A; --seat:#22313A; --shade:rgba(0,0,0,.6); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0C1417; --surface:#16222A; --deck:#1B2A31; --ink:#E4EDEF; --muted:#94A5AB; --line:#2E3E45;
+  --accent:#6DBBD6; --accent-ink:#04212B; --free-bg:#163B47; --danger:#FF8A80; --danger-bg:#3A1A18;
+  --warn-bg:#3A2E0E; --warn-ink:#F2D27A; --seat:#22313A; --shade:rgba(0,0,0,.6); color-scheme:dark}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.5;
+  padding-left:max(12px,env(safe-area-inset-left,0px));padding-right:max(12px,env(safe-area-inset-right,0px))}
+button{font:inherit;color:inherit;cursor:pointer;border:0;background:none}
+button:focus-visible,input:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.app{max-width:520px;margin:0 auto;padding-block:8px calc(84px + env(safe-area-inset-bottom,0px))}
+.top{display:flex;align-items:center;gap:8px;padding-block:4px 8px}
+.top .date{flex:1;min-width:0;font-weight:700;font-size:15px}
+.top .date span{display:block;font-weight:500;font-size:12px;color:var(--muted)}
+.hbtn{display:flex;align-items:center;gap:4px;min-height:48px;padding:0 14px;border-radius:12px;background:var(--surface);border:1px solid var(--line);font-weight:700;font-size:15px}
+.hbtn:disabled{opacity:.35}
+.hbtn .cnt{font-family:var(--f-num);font-size:14px;color:var(--muted)}
+.status{display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:8px 8px 8px 14px;margin-bottom:10px;min-height:64px}
+.status .txt{flex:1;min-width:0}
+.status .big{font-weight:700;font-size:20px;line-height:1.2}
+.status .big b{font-family:var(--f-num);font-size:30px;margin:0 2px}
+.status .sub{font-size:13px;color:var(--muted)}
+.status.group{background:var(--free-bg);border-color:var(--accent)}
+.pbtn{min-height:48px;padding:0 16px;border-radius:12px;background:var(--accent);color:var(--accent-ink);font-weight:700;white-space:nowrap}
+.sbtn{min-height:48px;padding:0 16px;border-radius:12px;background:var(--surface);border:1.5px solid var(--ink);font-weight:700;white-space:nowrap}
+.dbtn{min-height:48px;padding:0 16px;border-radius:12px;background:var(--danger-bg);color:var(--danger);font-weight:700;border:1.5px solid var(--danger)}
+.banner{border-radius:12px;padding:10px 12px;margin-bottom:10px;font-size:14px;display:flex;gap:10px;align-items:center}
+.banner.warn{background:var(--warn-bg);color:var(--warn-ink)}
+.banner.err{background:var(--danger-bg);color:var(--danger)}
+.banner.info{background:var(--free-bg);color:var(--ink)}
+.banner .grow{flex:1;min-width:0}
+.banner button{min-height:40px;padding:0 12px;border-radius:10px;background:var(--surface);border:1px solid currentColor;font-weight:700;font-size:14px;color:inherit}
+.boatwrap{display:flex;justify-content:center}
+.boat{position:relative;width:min(100%,max(280px,calc((100dvh - 250px)/1.8)));aspect-ratio:1/1.8;container-type:inline-size;user-select:none;-webkit-user-select:none}
+.boat svg{position:absolute;inset:0;width:100%;height:100%}
+.hull{fill:var(--deck);stroke:var(--ink);stroke-width:1.6}
+.cabin{fill:var(--surface);stroke:var(--muted);stroke-width:1.2}
+.blabel{position:absolute;transform:translate(-50%,-50%);font-size:3.6cqw;color:var(--muted);font-weight:700;pointer-events:none;letter-spacing:.1em}
+.seat{position:absolute;width:18%;aspect-ratio:1;transform:translate(-50%,-50%);border-radius:50%;background:var(--seat);border:2.5px solid var(--ink);display:flex;align-items:center;justify-content:center;padding:0;line-height:1.05;transition:transform .12s}
+.seat:active{transform:translate(-50%,-50%) scale(.93)}
+.seat.colored{background:var(--fill);color:var(--fink);border-color:rgba(0,0,0,.28)}
+.seat.whitemark{border-color:#8E9AA0}
+.seat.empty{background:transparent;border:2.5px dashed var(--muted)}
+.mode-kuji .seat.empty{background:var(--free-bg);border-color:var(--accent);border-style:dashed}
+.seat .free{font-size:4.4cqw;font-weight:700;color:var(--muted)}
+.mode-kuji .seat.empty .free{color:var(--accent)}
+.seat .num{font-family:var(--f-num);font-weight:700;font-size:8.4cqw}
+.seat .lbl{font-weight:700;font-size:4.6cqw;max-width:92%;overflow:hidden;word-break:break-all;text-align:center}
+.seat .lbl.m{font-size:3.7cqw}.seat .lbl.s{font-size:2.9cqw}
+.seat .lbl small{font-size:.6em;font-weight:500}
+.seat .nb,.seat .gb,.seat .mb{position:absolute;white-space:nowrap;display:flex;align-items:center;justify-content:center;border-radius:999px;font-weight:700}
+.seat .nb{top:-9%;left:-9%;min-width:42%;height:42%;padding:0 4%;background:var(--ink);color:var(--bg);font-family:var(--f-num);font-size:4cqw}
+.seat .gb{bottom:-12%;left:50%;transform:translateX(-50%);height:36%;padding:0 10%;background:var(--accent);color:var(--accent-ink);font-size:3.2cqw}
+.seat .mb{top:-10%;right:-10%;width:46%;height:46%;background:var(--surface);color:var(--ink);border:1.5px solid var(--ink)}
+.seat .mb svg{width:72%;height:72%}
+.seat .mb.ud{background:var(--ink);color:var(--bg);font-size:3.6cqw;width:auto;min-width:46%;padding:0 6%}
+.mode-mark .seat.nomark{box-shadow:0 0 0 3px var(--bg),0 0 0 5px var(--danger)}
+.mode-mark .seat.dup{box-shadow:0 0 0 3px var(--bg),0 0 0 6px var(--danger)}
+.editing .seat{touch-action:none;cursor:grab;box-shadow:0 0 0 3px var(--warn-ink)}
+.tabs{position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--surface);border-top:1px solid var(--line);
+  padding:6px max(8px,env(safe-area-inset-right,0px)) calc(6px + env(safe-area-inset-bottom,0px)) max(8px,env(safe-area-inset-left,0px))}
+.tabs .in{max-width:520px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr);gap:4px}
+.tab{min-height:56px;border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:13px;font-weight:700;color:var(--muted)}
+.tab svg{width:24px;height:24px}
+.tab[aria-selected="true"]{background:var(--free-bg);color:var(--accent)}
+.chip{display:inline-flex;align-items:center;justify-content:center;flex:none;border-radius:50%;position:relative}
+.chip.color{background:var(--c);border:2px solid rgba(0,0,0,.22)}
+.chip.c-white{border-color:#8E9AA0}
+.chip.icon{background:var(--surface);border:2px solid var(--ink);color:var(--ink)}
+.chip.icon svg{width:70%;height:70%}
+.chip .ud{position:absolute;right:-6px;bottom:-6px;background:var(--ink);color:var(--bg);font-size:11px;font-weight:700;border-radius:6px;padding:0 4px;line-height:16px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-bottom:10px}
+.card h2{font-size:15px;margin:0 0 8px}
+.qrow{display:flex;gap:12px;align-items:center;padding:10px 0;border-top:1px solid var(--line)}
+.qrow:first-of-type{border-top:0}
+.qrow .mname{font-weight:700;font-size:16px;width:5.5em;flex:none}
+.qrow .who{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.qrow .who div{font-size:16px}
+.qrow .who .n{font-family:var(--f-num);font-weight:700;font-size:20px;margin-right:6px}
+.qrow .who .pos{color:var(--muted);font-size:13px;margin-left:6px}
+.qrow.dup{background:var(--danger-bg);border-radius:10px;padding-inline:8px}
+.tag{display:inline-block;font-size:12px;font-weight:700;padding:0 6px;border-radius:6px;background:var(--accent);color:var(--accent-ink);margin-left:6px;vertical-align:2px}
+.tag.red{background:var(--danger);color:var(--surface)}
+.muted{color:var(--muted);font-size:13px}
+.overlay{position:fixed;inset:0;z-index:30;background:var(--shade);display:flex;align-items:flex-end;justify-content:center}
+.sheet{width:100%;max-width:520px;background:var(--surface);border-radius:20px 20px 0 0;max-height:88dvh;overflow:auto;
+  padding:14px max(16px,env(safe-area-inset-right,0px)) calc(18px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.sheet .grab{width:44px;height:5px;border-radius:3px;background:var(--line);margin:0 auto 10px}
+.sheet h3{margin:0 0 4px;font-size:19px}
+.sheet .row{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+.seg{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:4px;background:var(--deck);border-radius:12px;padding:4px;margin-top:10px}
+.seg button{min-height:46px;border-radius:9px;font-weight:700;font-size:15px;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.15)}
+.field{margin-top:12px}
+.field label{display:block;font-size:13px;color:var(--muted);margin-bottom:4px}
+.field input{width:100%;min-height:52px;font:inherit;font-size:20px;padding:0 14px;border-radius:12px;border:1.5px solid var(--line);background:var(--bg);color:var(--ink)}
+.preview{display:flex;align-items:center;gap:10px;margin-top:8px;font-size:14px;color:var(--muted)}
+.preview b{font-size:20px;color:var(--ink)}
+.preview small{font-size:.6em}
+.err{color:var(--danger);font-size:13px;margin-top:4px;min-height:1em}
+.stepper{display:flex;align-items:center;gap:10px}
+.stepper button{width:56px;height:56px;border-radius:14px;background:var(--deck);font-size:28px;font-weight:700}
+.stepper output{font-family:var(--f-num);font-size:40px;font-weight:700;min-width:2.2em;text-align:center}
+.mgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
+.mbtn{min-height:84px;border-radius:14px;border:2px solid var(--line);background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:6px;font-weight:700;font-size:14px}
+.mbtn[aria-pressed="true"]{border-color:var(--accent);background:var(--free-bg)}
+.mbtn .used{font-size:11px;font-weight:500;color:var(--muted);line-height:1.2;text-align:center}
+.mbtn.armed{border-color:var(--danger);background:var(--danger-bg)}
+.mbtn.armed .used{color:var(--danger);font-weight:700}
+.full{width:100%;margin-top:12px}
+.tailsw{display:flex;align-items:center;gap:10px;margin:-2px 0 10px}
+.tailsw>span{font-weight:700;font-size:14px;flex:none}
+.tailsw .seg{flex:1;margin-top:0}
+.rbtns{display:flex;gap:8px;padding-bottom:12px}
+.toast{pointer-events:none;position:fixed;left:50%;top:calc(env(safe-area-inset-top,0px) + 6px);transform:translateX(-50%);z-index:40;background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:12px;font-size:14px;font-weight:700;max-width:calc(100% - 32px);text-align:center}
+details{border-top:1px solid var(--line)}
+details summary{min-height:52px;display:flex;align-items:center;gap:8px;font-weight:700;cursor:pointer;list-style:none}
+details summary::-webkit-details-marker{display:none}
+.setrow{display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--line)}
+.setrow:first-of-type{border-top:0}
+.setrow .grow{flex:1;min-width:0}
+@media (prefers-reduced-motion: reduce){.seat{transition:none}}
+</style>
+
+<div class="app" id="app"></div>
+<nav class="tabs" aria-label="画面切り替え"><div class="in" id="tabs"></div></nav>
+<div id="layer"></div>
+
+<script>
+/* ===== 設定(焼き固めない: 名前・色・閾値・既定配置はここだけ) ===== */
+const CONFIG = {
+  storageKey: 'funajirushi.v1',
+  historyLimit: 200,
+  splitAt: 10,            // 印の必要数がこの数に達したら尻尾切りを上下に自動分割
+  san: 'さん',
+  groupLetters: 'ABCDEFGHIJKL',
+  // 席: 内部IDは固定。name は表示用の仮の呼び方(呼び方は未定・後で変更可)。x,y は船の枠に対する%
+  seats: [
+    {id:'B1', name:'船首左', x:37, y:12},
+    {id:'B2', name:'船首右', x:63, y:12},
+    {id:'P1', name:'左1', x:15, y:25}, {id:'P2', name:'左2', x:15, y:37}, {id:'P3', name:'左3', x:15, y:64},
+    {id:'P4', name:'左4', x:15, y:76}, {id:'P5', name:'左5', x:15, y:88},
+    {id:'S1', name:'右1', x:85, y:25}, {id:'S2', name:'右2', x:85, y:37}, {id:'S3', name:'右3', x:85, y:64},
+    {id:'S4', name:'右4', x:85, y:76}, {id:'S5', name:'右5', x:85, y:88},
+  ],
+  marks: [
+    {id:'red',    name:'赤',     kind:'color', color:'#E0302B', ink:'#FFFFFF'},
+    {id:'orange', name:'オレンジ', kind:'color', color:'#F08A1C', ink:'#2B1400'},
+    {id:'yellow', name:'黄',     kind:'color', color:'#F4D613', ink:'#332B00'},
+    {id:'purple', name:'紫',     kind:'color', color:'#8A3FC6', ink:'#FFFFFF'},
+    {id:'blue',   name:'青',     kind:'color', color:'#2768DB', ink:'#FFFFFF'},
+    {id:'green',  name:'緑',     kind:'color', color:'#259A45', ink:'#FFFFFF'},
+    {id:'white',  name:'白',     kind:'color', color:'#FFFFFF', ink:'#13212A'},
+    {id:'none',   name:'無印',   kind:'none'},
+    {id:'tail',   name:'尻尾切り', kind:'tail'},
+    {id:'tailUp', name:'尻尾切り上', kind:'tail', ud:'上'},
+    {id:'tailDown', name:'尻尾切り下', kind:'tail', ud:'下'},
+  ],
+};
+const MARK = Object.fromEntries(CONFIG.marks.map(m=>[m.id,m]));
+const SEAT = Object.fromEntries(CONFIG.seats.map(s=>[s.id,s]));
+const ORDER = CONFIG.seats.map(s=>s.id);
+
+/* ===== 状態 ===== */
+const todayStr = () => { const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); };
+const newId = () => 'd'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+const freshDay = () => ({id:newId(), date:todayStr(), seats:{}, groups:{}, nextNum:1, groupMode:null, tailSplit:false, groupSeq:0});
+const freshLayout = () => ({locked:false, pos:{}});
+let app = {day:freshDay(), layout:freshLayout(), records:[], past:[], future:[], tab:'kuji'};
+const ui = {editLayout:false, storageOk:true};
+
+function load(){
+  try{
+    const raw = localStorage.getItem(CONFIG.storageKey);
+    if(raw){ const s=JSON.parse(raw); if(s && s.day) app = Object.assign(app, s); }
+    if(!app.day.id) app.day.id=newId();
+    app.records.forEach(r=>{ if(!r.day.id) r.day.id=newId(); });
+  }catch(e){ ui.storageOk=false; }
+}
+function syncRecord(){ const i=app.records.findIndex(r=>r.day.id===app.day.id); if(i>=0) app.records[i]={savedAt:Date.now(), day:JSON.parse(JSON.stringify(app.day))}; }
+function storeRecord(){ syncRecord(); if(!app.records.some(r=>r.day.id===app.day.id)) app.records.push({savedAt:Date.now(), day:JSON.parse(JSON.stringify(app.day))}); app.records.sort((a,b)=>a.day.date<b.day.date?-1:a.day.date>b.day.date?1:a.savedAt-b.savedAt); }
+const isRecorded = () => app.records.some(r=>r.day.id===app.day.id);
+function save(){
+  syncRecord();
+  app.savedAt=Date.now();
+  cloudPut('current', {savedAt:app.savedAt, day:app.day, layout:app.layout});
+  if(isRecorded()){ const r=app.records.find(x=>x.day.id===app.day.id); cloudPut('rec_'+app.day.id, {deleted:false, savedAt:r.savedAt, date:r.day.date, day:r.day}); }
+  try{ localStorage.setItem(CONFIG.storageKey, JSON.stringify(app)); ui.storageOk=true; }
+  catch(e){ ui.storageOk=false; }
+}
+
+/* ===== 計算 ===== */
+function markOf(d,id){ const s=d.seats[id]; if(!s) return null; const g=s.gid&&d.groups[s.gid]; return (g&&g.same)? g.mark : s.mark; }
+function units(d){
+  const list=[], map={};
+  for(const id of ORDER){ const s=d.seats[id]; if(!s) continue; const g=s.gid&&d.groups[s.gid];
+    if(g&&g.same){ const k='g:'+s.gid; if(!map[k]){ map[k]={key:k,gid:s.gid,seats:[],mark:g.mark}; list.push(map[k]); } map[k].seats.push(id); }
+    else list.push({key:'s:'+id, gid:s.gid||null, seats:[id], mark:s.mark});
+  }
+  return list;
+}
+const ownerOf = u => u.gid ? 'g:'+u.gid : u.key;
+function usage(d){ // mark -> {units:[], owners:Set}
+  const r={};
+  for(const u of units(d)){ if(!u.mark) continue; (r[u.mark] ||= {units:[],owners:new Set()}); r[u.mark].units.push(u); r[u.mark].owners.add(ownerOf(u)); }
+  return r;
+}
+function dupMarks(d){ const us=usage(d); return Object.keys(us).filter(m=>us[m].owners.size>1); }
+function availableMarks(d){ return CONFIG.marks.filter(m=> m.kind!=='tail' || (d.tailSplit ? !!m.ud : !m.ud)); }
+function emptyCount(d){ return ORDER.filter(id=>!d.seats[id]).length; }
+function pos(id){ return app.layout.pos[id] || {x:SEAT[id].x, y:SEAT[id].y}; }
+function setMarkOnUnit(d,u,mid){ const g=u.gid&&d.groups[u.gid]; if(g&&g.same) g.mark=mid; else d.seats[u.seats[0]].mark=mid; }
+function unitOfSeat(d,id){ return units(d).find(u=>u.seats.includes(id)); }
+
+/* 変更後の自動処理: 10通りで尻尾切りを上下へ分割(戻すのは手動) */
+function afterChange(d){
+  if(!d.tailSplit && units(d).length >= CONFIG.splitAt){
+    d.tailSplit = true;
+    for(const id in d.seats) if(d.seats[id].mark==='tail') d.seats[id].mark='tailUp';
+    for(const gid in d.groups) if(d.groups[gid].mark==='tail') d.groups[gid].mark='tailUp';
+    return '印が'+CONFIG.splitAt+'通りになったので、尻尾切りを「上」と「下」に分けました';
+  }
+  return '';
+}
+
+/* ===== 操作の記録(戻す/やり直す) ===== */
+const snap = () => JSON.stringify({day:app.day, layout:app.layout});
+function commit(fn, msg){
+  const before = snap();
+  fn(app.day, app.layout);
+  const auto = afterChange(app.day);
+  if(snap()===before){ render(); return false; }
+  app.past.push(before); if(app.past.length>CONFIG.historyLimit) app.past.shift();
+  app.future = [];
+  save(); render();
+  const t=[msg,auto].filter(Boolean).join(' / '); if(t) toast(t);
+  buzz(); return true;
+}
+function undo(){ if(!app.past.length) return; app.future.push(snap()); const s=JSON.parse(app.past.pop()); app.day=s.day; app.layout=s.layout; closeSheet(); save(); render(); toast('1つ前に戻しました'); buzz(); }
+function redo(){ if(!app.future.length) return; app.past.push(snap()); const s=JSON.parse(app.future.pop()); app.day=s.day; app.layout=s.layout; closeSheet(); save(); render(); toast('やり直しました'); buzz(); }
+function buzz(){ try{ navigator.vibrate && navigator.vibrate(12); }catch(e){} }
+
+/* ===== 表示部品 ===== */
+const esc = s => String(s??'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const ICON = {
+  none: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><circle cx="12" cy="12" r="8.5"/><path d="M6 18L18 6"/></svg>',
+  tail: '<svg viewBox="0 0 24 24"><path d="M2 12L12 6.5 22 2.5 18.5 12 22 21.5 12 17.5z" fill="currentColor"/><path d="M9 4v16" stroke="var(--surface)" stroke-width="2.2" stroke-dasharray="2.4 1.8"/></svg>',
+};
+function chip(mid, px){
+  const m=MARK[mid]; const st=`width:${px}px;height:${px}px`;
+  if(!m) return `<span class="chip icon" style="${st};border-style:dashed;border-color:var(--muted)"></span>`;
+  if(m.kind==='color') return `<span class="chip color c-${m.id}" style="${st};--c:${m.color}"></span>`;
+  return `<span class="chip icon" style="${st}">${ICON[m.kind]}${m.ud?`<span class="ud">${m.ud}</span>`:''}</span>`;
+}
+function labelHTML(s){
+  if(s.ltype==='name' && s.label) return `${esc(s.label)}<small>${CONFIG.san}</small>`;
+  if(s.ltype==='memo' && s.label) return esc(s.label);
+  return '';
+}
+function personText(d,id){ const s=d.seats[id]; const l=labelHTML(s); return `${s.num!=null?`<span class="n">${s.num}番</span>`:''}${l}`; }
+const seatTag = (d,id) => { const s=d.seats[id]; return s&&s.num!=null ? s.num+'番' : SEAT[id].name; };
+
+function seatHTML(id, d, mode, dups){
+  const s=d.seats[id], p=pos(id);
+  let cls='seat', style=`left:${p.x}%;top:${p.y}%`, inner='', aria=SEAT[id].name;
+  if(!s){ cls+=' empty'; inner='<span class="free">空</span>'; aria+=' 空き席'; }
+  else{
+    const mid=markOf(d,id), m=MARK[mid];
+    if(m&&m.kind==='color'){ cls+=' colored'+(m.id==='white'?' whitemark':''); style+=`;--fill:${m.color};--fink:${m.ink}`; }
+    const lab=labelHTML(s);
+    const hasNum = s.num!=null;
+    if(lab){ const len=(s.label||'').length + (s.ltype==='name'?1:0); inner+=`<span class="lbl ${len>5?'s':len>3?'m':''}">${lab}</span>${hasNum?`<span class="nb">${s.num}</span>`:''}`; }
+    else if(hasNum) inner+=`<span class="num">${s.num}</span>`;
+    const g=s.gid&&d.groups[s.gid]; if(g) inner+=`<span class="gb">団${esc(g.letter)}</span>`;
+    if(m&&m.kind!=='color') inner+= m.ud ? `<span class="mb ud">${m.ud}</span>` : `<span class="mb">${ICON[m.kind]}</span>`;
+    if(!mid) cls+=' nomark';
+    if(mid && dups.includes(mid)) cls+=' dup';
+    aria+=` ${s.num!=null?s.num+'番':'番号なし'} ${s.label||''} ${m?m.name:'印なし'}`;
+  }
+  return `<button class="${cls}" data-seat="${id}" style="${style}" aria-label="${esc(aria)}">${inner}</button>`;
+}
+function boatHTML(d, mode){
+  const dups=dupMarks(d);
+  return `<div class="boatwrap"><div class="boat ${ui.editLayout?'editing':''}" id="boat">
+    <svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+      <polygon class="hull" vector-effect="non-scaling-stroke" points="50,1 94,19 94,98 6,98 6,19"/>
+      <polygon class="cabin" vector-effect="non-scaling-stroke" points="30,33 50,28 70,33 70,58 30,58"/>
+    </svg>
+    <span class="blabel" style="left:50%;top:5.5%">船首</span>
+    <span class="blabel" style="left:50%;top:45%">船室</span>
+    <span class="blabel" style="left:50%;top:80%">船尾</span>
+    ${ORDER.map(id=>seatHTML(id,d,mode,dups)).join('')}
+  </div></div>`;
+}
+
+/* ===== 画面 ===== */
+const TABS = [
+  {id:'kuji', name:'くじ・席', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="3" width="16" height="18" rx="3"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>'},
+  {id:'mark', name:'印', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="8" cy="8" r="4"/><circle cx="16" cy="16" r="4"/><path d="M15 4l5 5M20 4l-5 5"/></svg>'},
+  {id:'quick', name:'早見表', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/></svg>'},
+  {id:'log', name:'記録・設定', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 4h11l3 3v13H5z"/><path d="M9 11h6M9 15h6"/></svg>'},
+];
+function fmtDate(s){ const [y,m,d]=s.split('-').map(Number); const w='日月火水木金土'[new Date(y,m-1,d).getDay()]; return `${m}月${d}日(${w})`; }
+
+function render(){
+  const d=app.day, tab=app.tab;
+  document.getElementById('tabs').innerHTML = TABS.map(t=>`<button class="tab" data-tab="${t.id}" aria-selected="${tab===t.id}">${t.icon}${t.name}</button>`).join('');
+  let h = `<div class="top"><div class="date">${fmtDate(d.date)}<span>${ORDER.length-emptyCount(d)}人 / 空き${emptyCount(d)}席</span></div>
+    <button class="hbtn" data-act="undo" ${app.past.length?'':'disabled'} aria-label="1つ前に戻す"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 010 12h-3"/></svg>戻す<span class="cnt">${app.past.length}</span></button>
+    <button class="hbtn" data-act="redo" ${app.future.length?'':'disabled'} aria-label="やり直す"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M15 14l5-5-5-5"/><path d="M20 9H10a6 6 0 000 12h3"/></svg></button></div>`;
+  if(!ui.storageOk) h+=`<div class="banner warn"><div class="grow">この開き方では保存されません。閉じると内容が消えます(見るだけなら問題ありません)。</div></div>`;
+  if(d.date!==todayStr() && Object.keys(d.seats).length) h+=`<div class="banner warn"><div class="grow">${fmtDate(d.date)}の内容を${isRecorded()?'編集中です。変更は自動で記録に残ります。':'表示中です。'}</div><button data-act="gotoLog">記録へ</button></div>`;
+
+  if(ui.editLayout){
+    h+=`<div class="banner warn"><div class="grow"><b>配置編集中</b>: 席を指で動かせます。</div><button data-act="endEdit">完了</button></div>`;
+    h+=boatHTML(d,'edit');
+  } else if(tab==='kuji'){
+    if(d.groupMode){ const g=d.groups[d.groupMode.gid];
+      h+=`<div class="status group"><div class="txt"><div class="big">団体${esc(g.letter)} ${g.num!=null?`<b>${g.num}</b>番`:''}</div><div class="sub">残り${d.groupMode.remaining}人。空き席をタップ</div></div><button class="sbtn" data-act="endGroup">団体終了</button></div>`;
+      if(!emptyCount(d)) h+=`<div class="banner warn"><div class="grow">空き席がありません。「団体終了」を押してください。</div></div>`;
+    } else {
+      h+= d.noKuji
+        ? `<div class="status"><div class="txt"><div class="big">くじなし</div><div class="sub">${emptyCount(d)?'空き席をタップで名前・一言を入力':'満席です'}</div></div><button class="pbtn" data-act="startGroup" ${emptyCount(d)<2?'disabled style="opacity:.4"':''}>団体</button></div>`
+        : `<div class="status"><div class="txt"><div class="big">次は<b>${d.nextNum}</b>番</div><div class="sub">${emptyCount(d)?'空き席をタップで決定':'満席です'}</div></div><button class="pbtn" data-act="startGroup" ${emptyCount(d)<2?'disabled style="opacity:.4"':''}>団体</button></div>`;
+    }
+    if(!d.groupMode) h+=`<div class="tailsw"><span>くじ番号</span><div class="seg"><button data-act="kujiOn" aria-pressed="${!d.noKuji}">使う</button><button data-act="kujiOff" aria-pressed="${!!d.noKuji}">使わない</button></div></div>`;
+    if(!Object.keys(d.seats).length) h+=`<div class="banner info"><div class="grow">共有コードを受け取った方は、ここから開けます。</div><button data-act="openCodeSheet">コードで開く</button></div>`;
+    h+=boatHTML(d,'kuji');
+  } else if(tab==='mark'){
+    const n=units(d).length, max=d.tailSplit?10:9, dups=dupMarks(d), unset=units(d).filter(u=>!u.mark).length;
+    h+=`<div class="status"><div class="txt"><div class="big">印 <b>${n}</b>通り<span class="sub" style="font-size:14px"> / 最大${max}</span></div><div class="sub">${unset?`印がまだ ${unset}`:'全員に印が付いています'}</div></div></div>
+    <div class="tailsw"><span>尻尾切り</span><div class="seg"><button data-act="mergeTail" aria-pressed="${!d.tailSplit}">1種類</button><button data-act="splitTail" aria-pressed="${d.tailSplit}">上・下に分ける</button></div></div>`;
+    if(n>10) h+=`<div class="banner err"><div class="grow">印が足りません(${n}通り)。同じ印を重複して付けてください。</div></div>`;
+    if(dups.length) h+=`<div class="banner err"><div class="grow">同じ印が別の人に付いています: ${dups.map(m=>MARK[m].name).join('、')}</div><button data-act="gotoQuick">確認</button></div>`;
+    if(!n) h+=`<div class="muted" style="margin:-2px 0 8px">席をタップすると、くじの番号がなくても印を付けられます。</div>`;
+    else h+=`<div class="muted" style="margin:-2px 0 8px">席をタップして印を選ぶ。空席もそのまま印を付けられます。赤い輪は印がまだの席です。</div>`;
+    h+=boatHTML(d,'mark');
+  } else if(tab==='quick'){
+    h+=quickHTML(d);
+  } else {
+    h+=logHTML();
+  }
+  const el=document.getElementById('app');
+  el.className='app mode-'+(ui.editLayout?'edit':tab);
+  el.innerHTML=h;
+}
+
+function quickHTML(d){
+  const us=units(d); if(!us.length) return `<div class="card"><h2>早見表</h2><div class="muted">まだ席が決まっていません。</div>${d===app.day?'<button class="pbtn full" data-act="openCodeSheet">共有コードで開く</button>':''}</div>`;
+  const use=usage(d), dups=dupMarks(d);
+  let h=`<div class="card"><h2>印 → だれ</h2>`;
+  const order=CONFIG.marks.filter(m=>use[m.id]);
+  if(!order.length) h+=`<div class="muted">まだ印が付いていません。「印」タブで付けてください。</div>`;
+  for(const m of order){
+    const rows=use[m.id].units.flatMap(u=>u.seats.map(id=>{ const s=d.seats[id], g=s.gid&&d.groups[s.gid];
+      return `<div>${personText(d,id)}<span class="pos">${SEAT[id].name}</span>${g?`<span class="tag">団${esc(g.letter)}</span>`:''}</div>`; })).join('');
+    h+=`<div class="qrow ${dups.includes(m.id)?'dup':''}">${chip(m.id,40)}<div class="mname">${m.name}${dups.includes(m.id)?'<br><span class="tag red" style="margin:0">重複</span>':''}</div><div class="who">${rows}</div></div>`;
+  }
+  h+=`</div>`;
+  const unset=us.filter(u=>!u.mark);
+  if(unset.length){
+    h+=`<div class="card"><h2>印がまだの人</h2>`+unset.flatMap(u=>u.seats.map(id=>{const s=d.seats[id],g=s.gid&&d.groups[s.gid]; return `<div class="qrow">${chip(null,28)}<div class="who"><div>${personText(d,id)}<span class="pos">${SEAT[id].name}</span>${g?`<span class="tag">団${esc(g.letter)}</span>`:''}</div></div></div>`;})).join('')+`</div>`;
+  }
+  return h;
+}
+
+function logHTML(){
+  const d=app.day;
+  let h=`<div class="card"><h2>今の内容(${fmtDate(d.date)})</h2>
+    <div class="setrow"><div class="grow">記録に保存して、このまま続ける<div class="muted">${isRecorded()?'記録に保存済みです。変更は自動で記録にも反映されます。':'まだ記録にはありません。'}</div></div><button class="sbtn" data-act="saveRecord" ${isRecorded()||!Object.keys(d.seats).length?'disabled style="opacity:.4"':''}>保存</button></div>
+    <div class="setrow"><div class="grow">記録に残して、空の船から始める<div class="muted">戻す・やり直すの履歴はリセットされます。</div></div></div>
+    <div class="setrow"><div class="grow">この日の内容をほかの人に送る<div class="muted">リンクかコードを送ると、相手のスマホで開けます。</div></div><button class="sbtn" data-act="shareRecord" data-id="${d.id}" ${Object.keys(d.seats).length?'':'disabled style="opacity:.4"'}>共有</button></div>
+    <button class="dbtn full" data-act="newDay" data-confirm="もう一度タップで新しい日を始める">新しい日を始める</button></div>`;
+  h+=`<div class="card"><h2>過去の記録${app.records.length?`(${app.records.length}件)`:''}</h2>`;
+  if(!app.records.length) h+=`<div class="muted">まだ記録はありません。「保存」か「新しい日を始める」を押すと、ここに残ります。</div>`;
+  app.records.slice().reverse().forEach(r=>{ const open=r.day.id===d.id;
+    h+=`<details><summary>${fmtDate(r.day.date)}<span class="muted">${Object.keys(r.day.seats).length}人・印${units(r.day).filter(u=>u.mark).length}通り</span>${open?'<span class="tag">開いています</span>':''}</summary>
+      <div class="rbtns">${open?'<span class="muted" style="flex:1;align-self:center">今この記録を編集しています。</span>':`<button class="pbtn" data-act="openRecord" data-id="${r.day.id}" style="flex:1">開いて編集</button>`}<button class="sbtn" data-act="shareRecord" data-id="${r.day.id}">共有</button><button class="dbtn" data-act="deleteRecord" data-id="${r.day.id}" data-confirm="もう一度で削除">削除</button></div>${quickHTML(r.day)}</details>`;
+  });
+  h+=`</div>`;
+  h+=`<div class="card"><h2>船の配置</h2>
+    <div class="setrow"><div class="grow">席の位置を指で動かす<div class="muted">${app.layout.locked?'固定中です。解除すると動かせます。':'完成したら固定してください。'}</div></div>
+      <button class="sbtn" data-act="startEdit" ${app.layout.locked?'disabled style="opacity:.4"':''}>動かす</button></div>
+    <div class="setrow"><div class="grow">配置を固定</div><button class="sbtn" data-act="toggleLock">${app.layout.locked?'固定を解除':'固定する'}</button></div>
+    <div class="setrow"><div class="grow">最初の配置に戻す</div><button class="sbtn" data-act="resetLayout" data-confirm="もう一度タップ" ${app.layout.locked?'disabled style="opacity:.4"':''}>戻す</button></div>
+    </div>`;
+  if(HOSTED && !STANDALONE) h+=`<div class="card"><h2>ホーム画面に追加してください</h2><div class="muted">ホーム画面から開くと、電波がなくても動き、データも消えにくくなります。<br>iPhone: 下の共有ボタン →「ホーム画面に追加」<br>Android: 右上の︙ →「ホーム画面に追加」</div></div>`;
+  h+=`<div class="card"><h2>共有された内容を読み込む</h2><div class="muted">受け取ったリンクかコードを貼り付けてください。</div>
+    <div class="field"><textarea id="impbox" rows="3" style="width:100%;font:inherit;font-size:14px;padding:10px;border-radius:12px;border:1.5px solid var(--line);background:var(--bg);color:var(--ink)" placeholder="ここに貼り付け"></textarea><div class="err" id="imperr"></div></div>
+    <button class="pbtn full" data-act="importCode">読み込む</button></div>`;
+  h+=`<div class="card"><h2>データの保存</h2><div class="muted">${cloud.state==='off'?'この端末の中に保存しています。機種変更やデータ消去に備えて、時々「全部をバックアップ」でコードをLINEなどに残してください。':'スマホの中に加えて、Claude側にも控えを保存します(本人だけが見られます)。キャッシュを消しても、開き直せば控えから戻ります。'}</div><div id="cloudst" style="margin-top:8px;font-weight:700">${cloudText()}</div>
+    <button class="sbtn full" data-act="shareAll">全部をバックアップ(コードを作る)</button></div>`;
+  return h;
+}
+
+/* ===== シート(下から出る画面) ===== */
+function openSheet(html, onMount){ const L=document.getElementById('layer'); L.innerHTML=`<div class="overlay" data-act="closeSheet"><div class="sheet" role="dialog" aria-modal="true"><div class="grab"></div>${html}</div></div>`; onMount&&onMount(L.querySelector('.sheet')); }
+function closeSheet(){ document.getElementById('layer').innerHTML=''; }
+
+function openGroupStart(){
+  let n=2; const max=emptyCount(app.day);
+  const nk=!!app.day.noKuji;
+  openSheet(`<h3>団体を決める</h3><div class="muted">${nk?'この人数分の席を、同じ団体にします。':`次の<b>${app.day.nextNum}番</b>を、この人数分の席に付けます。`}</div>
+    <div class="field"><label>人数(空き${max}席)</label><div class="stepper"><button data-s="-1" aria-label="減らす">−</button><output id="gn">2</output><button data-s="1" aria-label="増やす">＋</button></div><div class="err" id="gerr"></div></div>
+    <div class="row"><button class="sbtn" data-act="closeSheet" style="flex:1">やめる</button><button class="pbtn" id="gok" style="flex:2">開始</button></div>`, sh=>{
+    const out=sh.querySelector('#gn'), err=sh.querySelector('#gerr');
+    sh.querySelectorAll('[data-s]').forEach(b=>b.onclick=()=>{ n=Math.max(2,Math.min(12,n+Number(b.dataset.s))); out.textContent=n; err.textContent=''; });
+    sh.querySelector('#gok').onclick=()=>{
+      if(n>max){ err.textContent=`空き席は${max}席です。人数を${max}人以下にしてください。`; return; }
+      closeSheet();
+      commit(d=>{ const gid='g'+Date.now().toString(36)+d.groupSeq; const letter=CONFIG.groupLetters[d.groupSeq % CONFIG.groupLetters.length]; d.groupSeq++;
+        d.groups[gid]={id:gid, letter, num: d.noKuji?null:d.nextNum, size:n, same:true, mark:null};
+        d.groupMode={gid, remaining:n}; }, `団体${CONFIG.groupLetters[app.day.groupSeq % CONFIG.groupLetters.length]}(${n}人)を開始`);
+    };
+  });
+}
+function endGroup(){
+  const gm=app.day.groupMode; if(!gm) return;
+  commit(d=>{ const g=d.groups[gm.gid]; const cnt=ORDER.filter(id=>d.seats[id]&&d.seats[id].gid===gm.gid).length;
+    d.groupMode=null;
+    if(cnt===0){ delete d.groups[gm.gid]; d.groupSeq=Math.max(0,d.groupSeq-1); }
+    else { g.size=cnt; if(g.num!=null) d.nextNum=g.num+1; } }, '団体を終了しました');
+}
+function assignSeat(id){
+  const d0=app.day;
+  if(d0.groupMode){ const g=d0.groups[d0.groupMode.gid];
+    commit(d=>{ d.seats[id]={num:g.num, gid:g.id, label:'', ltype:'num', mark:null}; d.groupMode.remaining--;
+      if(d.groupMode.remaining<=0){ d.groupMode=null; if(g.num!=null) d.nextNum=g.num+1; } },
+      d0.groupMode.remaining<=1 ? `団体${g.letter}の${g.size}人が決まりました${g.num!=null?`。次は${g.num+1}番`:''}` : `${SEAT[id].name}を団体${g.letter}に${g.num!=null?`(${g.num}番)`:''}`);
+  } else {
+    const n=d0.nextNum; commit(d=>{ d.seats[id]={num:d.nextNum, gid:null, label:'', ltype:'num', mark:null}; d.nextNum++; }, `${SEAT[id].name}に${n}番`);
+  }
+}
+function openEdit(id){
+  const isNew=!app.day.seats[id];
+  const s=app.day.seats[id] || {num:null, gid:null, label:'', ltype:'name', mark:null}; const g=s.gid&&app.day.groups[s.gid];
+  let ltype=s.ltype||'num', num=s.num;
+  const showNum = !(app.day.noKuji && num==null);
+  openSheet(`<h3>${SEAT[id].name}の席${isNew?'(新しく入れる)':s.num==null?'(番号なし)':''} ${g?`<span class="tag">団体${esc(g.letter)}</span>`:''}</h3>
+    <div class="seg" id="lt"><button data-v="num">${num==null?'空欄':'番号だけ'}</button><button data-v="name">名前</button><button data-v="memo">一言</button></div>
+    <div class="field" id="tf"><label for="ltext" id="tl">名前</label><input id="ltext" maxlength="12" autocomplete="off" value="${esc(s.label||'')}"><div class="preview" id="pv"></div><div class="err" id="lerr"></div></div>
+    <div class="field" ${showNum?'':'hidden'}><label>くじの番号(− で「なし」)</label><div class="stepper"><button data-s="-1" aria-label="減らす">−</button><output id="en">${num??'なし'}</output><button data-s="1" aria-label="増やす">＋</button></div>
+      ${num==null&&!g&&!isNew?`<button class="sbtn full" id="enext">次の番号(${app.day.nextNum}番)を付ける</button>`:''}</div>
+    <div class="row"><button class="pbtn" id="esave" style="flex:1">${isNew?'この席に入れる':'保存'}</button></div>
+    ${isNew?'':'<div class="row"><button class="dbtn" id="eclear" data-confirm="もう一度タップで空席にする" style="flex:1">この席を空ける</button></div>'}`, sh=>{
+    const inp=sh.querySelector('#ltext'), tf=sh.querySelector('#tf'), pv=sh.querySelector('#pv'), lerr=sh.querySelector('#lerr');
+    const paint=()=>{ sh.querySelectorAll('#lt button').forEach(b=>b.setAttribute('aria-pressed', b.dataset.v===ltype));
+      tf.hidden = ltype==='num'; sh.querySelector('#tl').textContent = ltype==='name'?'名前(「さん」は自動で付きます)':'一言(例: 帽子、赤い服)';
+      const v=inp.value.trim(); pv.innerHTML = v ? `表示: <b>${esc(v)}${ltype==='name'?`<small>${CONFIG.san}</small>`:''}</b>` : ''; };
+    sh.querySelectorAll('#lt button').forEach(b=>b.onclick=()=>{ ltype=b.dataset.v; lerr.textContent=''; paint(); if(ltype!=='num') inp.focus(); });
+    inp.oninput=()=>{ lerr.textContent=''; paint(); };
+    sh.querySelectorAll('[data-s]').forEach(b=>b.onclick=()=>{ const st=Number(b.dataset.s); num = num==null ? (st>0?1:null) : (num+st<1 ? null : Math.min(99,num+st)); sh.querySelector('#en').textContent=num??'なし'; });
+    const nx=sh.querySelector('#enext'); if(nx) nx.onclick=()=>{ closeSheet(); commit(d=>{ d.seats[id].num=d.nextNum; d.nextNum++; }, `${SEAT[id].name}に${app.day.nextNum}番を付けました`); };
+    sh.querySelector('#esave').onclick=()=>{
+      let v=inp.value.trim(); if(ltype==='name') v=v.replace(new RegExp(CONFIG.san+'$'),'');
+      if(ltype!=='num' && !v){ lerr.textContent = ltype==='name'?'名前を入れてください':'一言を入れてください'; inp.focus(); return; }
+      closeSheet();
+      commit(d=>{ if(!d.seats[id]) d.seats[id]={num:null, gid:null, label:'', ltype:'num', mark:null}; const t=d.seats[id]; t.ltype=ltype; t.label= ltype==='num' ? (t.label||'') : v; if(ltype==='num') t.label=''; t.num=num; }, '保存しました');
+    };
+    const ec=sh.querySelector('#eclear'); if(ec) armConfirm(ec, ()=>{ closeSheet(); clearSeat(id); });
+    paint(); if(isNew) setTimeout(()=>inp.focus(),50);
+  });
+}
+function clearSeat(id){
+  commit(d=>{ const s=d.seats[id]; delete d.seats[id];
+    if(s.gid && d.groups[s.gid]){
+      if(d.groupMode && d.groupMode.gid===s.gid) d.groupMode.remaining++;
+      else if(!ORDER.some(x=>d.seats[x]&&d.seats[x].gid===s.gid)) delete d.groups[s.gid];
+      else d.groups[s.gid].size=ORDER.filter(x=>d.seats[x]&&d.seats[x].gid===s.gid).length;
+    } }, `${SEAT[id].name}を空席にしました`);
+}
+function openMark(id){
+  const d=app.day, s=d.seats[id]; const u=s?unitOfSeat(d,id):{key:'s:'+id, gid:null, seats:[id], mark:null}; const g=s&&s.gid&&d.groups[s.gid];
+  const use=usage(d), me=ownerOf(u);
+  let armed=null;
+  const who = s ? u.seats.map(x=>`${seatTag(d,x)} ${labelHTML(d.seats[x])}`).join('、') : `${SEAT[id].name}(空席・番号なしで印を付けます)`;
+  const marks=availableMarks(d);
+  openSheet(`<h3>印を選ぶ</h3><div class="muted">${g&&g.same?`団体${esc(g.letter)}の${u.seats.length}人全員に付きます`:`${SEAT[id].name}: ${who}`}</div>
+    ${g?`<div class="seg" id="gs"><button data-v="same" aria-pressed="${g.same}">団体で同じ印</button><button data-v="sep" aria-pressed="${!g.same}">別々の印</button></div>`:''}
+    <div class="mgrid">${marks.map(m=>{ const us=use[m.id]; const others=us?us.units.filter(x=>ownerOf(x)!==me):[];
+      const lab=others.length?'使用中: '+others.flatMap(x=>x.seats.map(y=>seatTag(d,y))).filter((v,i,a)=>a.indexOf(v)===i).join(','):'';
+      return `<button class="mbtn" data-m="${m.id}" data-used="${others.length?1:0}" aria-pressed="${u.mark===m.id}">${chip(m.id,34)}<span>${m.name}</span><span class="used">${lab}</span></button>`; }).join('')}</div>
+    <div class="row"><button class="sbtn" data-act="closeSheet" style="flex:1">閉じる</button>${u.mark?'<button class="dbtn" id="mclear" style="flex:1">印を外す</button>':''}</div>
+    <div class="row"><button class="sbtn" id="mlabel" style="flex:1">名前・一言を入れる</button></div>
+    ${s?'<div class="row"><button class="dbtn" id="mempty" data-confirm="もう一度タップで空席にする" style="flex:1">この席を空ける</button></div>':''}`, sh=>{
+    sh.querySelectorAll('.mbtn').forEach(b=>b.onclick=()=>{
+      const mid=b.dataset.m;
+      if(b.dataset.used==='1' && armed!==mid){ sh.querySelectorAll('.mbtn.armed').forEach(x=>{x.classList.remove('armed');}); armed=mid; b.classList.add('armed'); b.querySelector('.used').textContent='もう一度タップで重複して付ける'; return; }
+      closeSheet(); commit(dd=>{ if(!dd.seats[id]) dd.seats[id]={num:null, gid:null, label:'', ltype:'num', mark:null}; setMarkOnUnit(dd, unitOfSeat(dd,id), mid); }, `${SEAT[id].name}に${MARK[mid].name}を付けました`);
+    });
+    sh.querySelector('#mlabel').onclick=()=>{ closeSheet(); openEdit(id); };
+    const me2=sh.querySelector('#mempty'); if(me2) armConfirm(me2, ()=>{ closeSheet(); clearSeat(id); });
+    const mc=sh.querySelector('#mclear'); if(mc) mc.onclick=()=>{ closeSheet(); commit(dd=>setMarkOnUnit(dd, unitOfSeat(dd,id), null), '印を外しました'); };
+    sh.querySelectorAll('#gs button').forEach(b=>b.onclick=()=>{
+      const toSame=b.dataset.v==='same'; if(toSame===g.same) return;
+      commit(dd=>{ const gg=dd.groups[g.id]; const mem=ORDER.filter(x=>dd.seats[x]&&dd.seats[x].gid===g.id);
+        if(toSame){ gg.mark = dd.seats[id].mark || (mem.map(x=>dd.seats[x].mark).find(Boolean) ?? null); gg.same=true; }
+        else { mem.forEach(x=>dd.seats[x].mark=gg.mark); gg.same=false; } }, toSame?`団体${g.letter}を同じ印にしました`:`団体${g.letter}を別々の印にしました`);
+      openMark(id);
+    });
+  });
+}
+function mergeTail(){
+  const d=app.day, n=units(d).length, use=usage(d);
+  if(!d.tailSplit) return;
+  if(n>=CONFIG.splitAt){ toast(`印が${n}通りあるため、尻尾切りは1つに戻せません`); return; }
+  if(use.tailUp && use.tailDown){ toast('上と下の両方が使われています。どちらかの印を変えてから戻してください'); return; }
+  commit(dd=>{ dd.tailSplit=false; const f=m=>(m==='tailUp'||m==='tailDown')?'tail':m;
+    for(const id in dd.seats) dd.seats[id].mark=f(dd.seats[id].mark); for(const gid in dd.groups) dd.groups[gid].mark=f(dd.groups[gid].mark); }, '尻尾切りを1種類に戻しました');
+}
+function splitTail(){
+  if(app.day.tailSplit) return;
+  commit(dd=>{ dd.tailSplit=true; for(const id in dd.seats) if(dd.seats[id].mark==='tail') dd.seats[id].mark='tailUp'; for(const gid in dd.groups) if(dd.groups[gid].mark==='tail') dd.groups[gid].mark='tailUp'; }, '尻尾切りを上・下に分けました');
+}
+function deleteRecord(id){
+  const r=app.records.find(x=>x.day.id===id); if(!r) return;
+  app.records=app.records.filter(x=>x.day.id!==id);
+  cloudPut('rec_'+id, {deleted:true, savedAt:Date.now(), date:r.day.date});
+  save(); render(); toast(`${fmtDate(r.day.date)}の記録を削除しました`); buzz();
+}
+function saveRecord(){ if(!Object.keys(app.day.seats).length) return; storeRecord(); save(); render(); toast('記録に保存しました'); buzz(); }
+function openRecord(id){
+  const r=app.records.find(x=>x.day.id===id); if(!r) return;
+  if(Object.keys(app.day.seats).length) storeRecord();
+  app.day=JSON.parse(JSON.stringify(r.day)); app.past=[]; app.future=[]; app.tab='kuji'; ui.editLayout=false;
+  save(); render(); window.scrollTo(0,0); toast(`${fmtDate(r.day.date)}の記録を開きました`); buzz();
+}
+function newDay(){
+  if(Object.keys(app.day.seats).length) storeRecord();
+  app.day=freshDay(); app.past=[]; app.future=[]; app.tab='kuji'; save(); render(); toast('新しい日を始めました'); buzz();
+}
+
+/* 2回タップで実行(誤操作防止) */
+function armConfirm(btn, fn){
+  const orig=btn.textContent; let t=null;
+  btn.onclick=()=>{ if(btn.dataset.armed){ clearTimeout(t); fn(); return; } btn.dataset.armed='1'; btn.textContent=btn.dataset.confirm||'もう一度タップ';
+    t=setTimeout(()=>{ delete btn.dataset.armed; btn.textContent=orig; },3000); };
+}
+let toastTimer=null;
+function toast(msg){ let el=document.querySelector('.toast'); if(!el){ el=document.createElement('div'); el.className='toast'; el.setAttribute('role','status'); document.body.appendChild(el); }
+  el.textContent=msg; el.hidden=false; clearTimeout(toastTimer); toastTimer=setTimeout(()=>el.hidden=true, 1900); }
+
+/* ===== 入力 ===== */
+document.addEventListener('click', e=>{
+  const tabB=e.target.closest('[data-tab]'); if(tabB){ ui.editLayout=false; app.tab=tabB.dataset.tab; save(); render(); window.scrollTo(0,0); return; }
+  const a=e.target.closest('[data-act]');
+  if(a){ const act=a.dataset.act;
+    if(act==='closeSheet'){ if(e.target===a) closeSheet(); return; }
+    if(a.dataset.confirm && !a.id){ if(!a.dataset.armed){ a.dataset.armed='1'; const o=a.textContent; a.textContent=a.dataset.confirm; setTimeout(()=>{ if(a.isConnected){ delete a.dataset.armed; a.textContent=o; } },3000); return; } }
+    ({undo, redo, startGroup:openGroupStart, endGroup, mergeTail, splitTail, newDay, saveRecord,
+      openRecord:()=>openRecord(a.dataset.id), shareRecord:()=>openShare('day', a.dataset.id), shareAll:()=>openShare('all'), importCode:()=>importFromBox(),
+      openCodeSheet:()=>openCodeSheet(),
+      kujiOn:()=>{ if(app.day.noKuji) commit(d=>{ d.noKuji=false; }, 'くじ番号を使います'); },
+      kujiOff:()=>{ if(!app.day.noKuji) commit(d=>{ d.noKuji=true; }, 'くじ番号なしで入力します'); }, deleteRecord:()=>deleteRecord(a.dataset.id),
+      gotoLog:()=>{app.tab='log'; render();}, gotoQuick:()=>{app.tab='quick'; render();},
+      startEdit:()=>{ if(app.layout.locked) return; ui.editLayout=true; render(); window.scrollTo(0,0); },
+      endEdit:()=>{ ui.editLayout=false; render(); toast('配置の編集を終えました'); },
+      toggleLock:()=>commit((d,l)=>{ l.locked=!l.locked; }, app.layout.locked?'固定を解除しました':'配置を固定しました'),
+      resetLayout:()=>commit((d,l)=>{ l.pos={}; }, '最初の配置に戻しました'),
+    }[act]||(()=>{}))();
+    return;
+  }
+  const seat=e.target.closest('[data-seat]');
+  if(seat && !ui.editLayout){ const id=seat.dataset.seat, s=app.day.seats[id];
+    if(app.tab==='kuji'){ s ? openEdit(id) : (app.day.noKuji && !app.day.groupMode) ? openEdit(id) : assignSeat(id); }
+    else if(app.tab==='mark'){ openMark(id); }
+  }
+});
+/* 配置編集: ドラッグ */
+let drag=null;
+document.addEventListener('pointerdown', e=>{
+  if(!ui.editLayout) return; const seat=e.target.closest('[data-seat]'); if(!seat) return;
+  const boat=document.getElementById('boat'); drag={id:seat.dataset.seat, el:seat, rect:boat.getBoundingClientRect(), before:snap(), moved:false};
+  seat.setPointerCapture(e.pointerId); e.preventDefault();
+});
+document.addEventListener('pointermove', e=>{
+  if(!drag) return; const r=drag.rect;
+  const x=Math.max(6,Math.min(94,(e.clientX-r.left)/r.width*100)), y=Math.max(4,Math.min(96,(e.clientY-r.top)/r.height*100));
+  app.layout.pos[drag.id]={x:Math.round(x*10)/10, y:Math.round(y*10)/10}; drag.moved=true;
+  drag.el.style.left=x+'%'; drag.el.style.top=y+'%';
+});
+const endDrag=()=>{ if(!drag) return; if(drag.moved){ app.past.push(drag.before); if(app.past.length>CONFIG.historyLimit) app.past.shift(); app.future=[]; save(); render(); } drag=null; };
+document.addEventListener('pointerup', endDrag); document.addEventListener('pointercancel', endDrag);
+
+
+/* ===== 控え(Claude側の保存場所)との同期 =====
+   スマホ内(localStorage)が主。控えは data/users/<本人のID>/ に置く(本人だけが読み書き)。
+   電波がない間は送信待ち(outbox)としてスマホに残し、つながったら送る。 */
+const cloud = {col:null, state:'connecting', pending:{}, busy:false, timer:null};
+const OUTBOX = CONFIG.storageKey + '.outbox';
+try{ cloud.pending = JSON.parse(localStorage.getItem(OUTBOX)||'{}') || {}; }catch(e){}
+function saveOutbox(){ try{ localStorage.setItem(OUTBOX, JSON.stringify(cloud.pending)); }catch(e){} }
+function cloudPut(id, body){ cloud.pending[id]=JSON.parse(JSON.stringify(body)); saveOutbox(); clearTimeout(cloud.timer); cloud.timer=setTimeout(cloudFlush, 1500); }
+async function cloudFlush(){
+  if(!cloud.col || cloud.busy) return; cloud.busy=true;
+  try{
+    for(const id of Object.keys(cloud.pending)){
+      const body=cloud.pending[id];
+      try{ await cloud.col.doc(id).set(body); if(cloud.pending[id]===body) delete cloud.pending[id]; cloud.state='ok'; }
+      catch(e){ cloud.state = (e&&e.code==='quota_exceeded') ? 'quota' : (e&&e.code==='revoked') ? 'off' : 'retry'; break; }
+    }
+  } finally {
+    cloud.busy=false; saveOutbox(); showCloud();
+    if(Object.keys(cloud.pending).length){ clearTimeout(cloud.timer); cloud.timer=setTimeout(cloudFlush, cloud.state==='ok'?1500:20000); }
+  }
+}
+function cloudText(){
+  const n=Object.keys(cloud.pending).length;
+  if(cloud.state==='connecting') return '控えに接続中…';
+  if(cloud.state==='off') return HOSTED ? 'この端末に保存中' : '控えは使えません(Claudeにサインインして開くと使えます)。今はスマホの中だけに保存しています。';
+  if(cloud.state==='quota') return '控えの保存容量がいっぱいです。古い記録を削除してください。';
+  if(n) return `控えに未送信 ${n}件(電波が戻ると自動で送ります)`;
+  return '控えも最新です';
+}
+function showCloud(){ const el=document.getElementById('cloudst'); if(el) el.textContent=cloudText(); }
+function cloudMerge(docs){
+  let changed=false, restored=false;
+  const localEmpty = !Object.keys(app.day.seats).length && !app.records.length && !app.past.length;
+  const cloudIds = new Set();
+  for(const d of docs){
+    if(!d.id.startsWith('rec_')) continue; const id=d.id.slice(4); cloudIds.add(id);
+    const pend=cloud.pending[d.id]; if(pend) continue; // スマホ側の未送信が優先
+    const i=app.records.findIndex(r=>r.day.id===id);
+    if(d.deleted){ if(i>=0 && app.records[i].savedAt<=d.savedAt){ app.records.splice(i,1); changed=true; } }
+    else if(i<0){ app.records.push({savedAt:d.savedAt, day:d.day}); changed=true; restored=true; }
+    else if(app.records[i].savedAt < d.savedAt){ app.records[i]={savedAt:d.savedAt, day:d.day}; changed=true; }
+  }
+  app.records.forEach(r=>{ if(!cloudIds.has(r.day.id) && !cloud.pending['rec_'+r.day.id]) cloud.pending['rec_'+r.day.id]={deleted:false, savedAt:r.savedAt, date:r.day.date, day:r.day}; });
+  const cur=docs.find(d=>d.id==='current');
+  if(cur && cur.day && localEmpty && Object.keys(cur.day.seats||{}).length){ app.day=cur.day; if(cur.layout) app.layout=cur.layout; changed=true; restored=true; }
+  if(changed){ app.records.sort((a,b)=>a.day.date<b.day.date?-1:a.day.date>b.day.date?1:a.savedAt-b.savedAt); save(); render(); }
+  if(restored && localEmpty) toast('控えから記録を戻しました');
+  saveOutbox();
+}
+async function cloudInit(){
+  try{
+    if(!(window.claude && typeof window.claude.use==='function')){ cloud.state='off'; return; }
+    const [db, user] = await Promise.all([window.claude.use('db'), window.claude.use('user')]);
+    if(!db || !user){ cloud.state='off'; return; }
+    const uid = await user.id(); if(!uid){ cloud.state='off'; return; }
+    const col = db.collection('data/users/'+uid);
+    const snap = await col.get();
+    cloudMerge(snap.docs.map(x=>Object.assign({id:x.id}, x.data())));
+    cloud.col=col; cloud.state='ok'; cloudFlush();
+  }catch(e){ cloud.state = (e&&e.code==='revoked'||e&&e.code==='not_granted') ? 'off' : 'retry'; setTimeout(cloudInit, 30000); }
+  finally{ showCloud(); }
+}
+window.addEventListener('online', ()=>{ if(cloud.col) cloudFlush(); else cloudInit(); });
+
+/* ===== 共有(リンク/コード)とバックアップ ===== */
+const HOSTED = (()=>{ try{ return /^https?:$/.test(location.protocol) && window.self===window.top && !window.claude && !/claude|anthropic/.test(location.hostname); }catch(e){ return false; } })();
+const STANDALONE = (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone===true;
+const b64u = { enc:(u8)=>{ let s=''; for(let i=0;i<u8.length;i+=0x8000) s+=String.fromCharCode.apply(null,u8.subarray(i,i+0x8000)); return btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,''); },
+  dec:(t)=>{ t=t.replace(/-/g,'+').replace(/_/g,'/'); while(t.length%4) t+='='; const s=atob(t); const u=new Uint8Array(s.length); for(let i=0;i<s.length;i++) u[i]=s.charCodeAt(i); return u; } };
+async function pipe(u8, Stream, fmt){ const st=new Blob([u8]).stream().pipeThrough(new Stream(fmt)); return new Uint8Array(await new Response(st).arrayBuffer()); }
+async function encodeShare(obj){
+  const raw=new TextEncoder().encode(JSON.stringify(obj));
+  if(typeof CompressionStream==='function'){ try{ return 'z'+b64u.enc(await pipe(raw, CompressionStream, 'deflate-raw')); }catch(e){} }
+  return 'j'+b64u.enc(raw);
+}
+async function decodeShare(code){
+  code=(code||'').trim(); const m=code.match(/[#&?]s=([A-Za-z0-9_-]+)/); if(m) code=m[1];
+  code=code.replace(/\s+/g,'');
+  const cm=code.match(/c[A-Za-z0-9_-]{8,}/); if(cm && !/^[zj]/.test(code)) return decodeDayCode(cm[0]);
+  if(!/^[zj][A-Za-z0-9_-]+$/.test(code)) throw new Error('form');
+  let u8=b64u.dec(code.slice(1));
+  if(code[0]==='z'){ if(typeof DecompressionStream!=='function') throw new Error('old'); u8=await pipe(u8, DecompressionStream, 'deflate-raw'); }
+  const obj=JSON.parse(new TextDecoder().decode(u8));
+  if(!obj || obj.app!=='funajirushi') throw new Error('form');
+  return obj;
+}
+async function openShare(kind, id){
+  let obj, title;
+  if(kind==='day'){ const day = id===app.day.id ? app.day : (app.records.find(r=>r.day.id===id)||{}).day; if(!day) return;
+    obj={app:'funajirushi', v:1, kind:'day', day}; title=`${fmtDate(day.date)}の内容を共有`; }
+  else { obj={app:'funajirushi', v:1, kind:'all', day:app.day, records:app.records, layout:app.layout}; title='全部をバックアップ'; }
+  const code = kind==='day' ? await encodeDayCode(obj.day) : await encodeShare(obj);
+  const base = HOSTED ? location.origin+location.pathname : '';
+  const text = HOSTED ? `${base}#s=${code}` : code;
+  openSheet(`<h3>${title}</h3><div class="muted">${HOSTED ? (kind==='day'?'このリンクを送ると、相手が押すだけで開けます。':'このリンクを、自分宛てのLINEやメモに残してください。開くと全部が戻ります。') : '「コピー」を押して、LINEなどにそのまま貼って送ってください。相手は船じるしを開いて「コードで開く」に貼り付けるだけで、同じ内容が映ります。'}</div>
+    <div class="field"><textarea id="shbox" readonly rows="4" style="width:100%;font-family:var(--f-num);font-size:13px;padding:10px;border-radius:12px;border:1.5px solid var(--line);background:var(--bg);color:var(--ink);word-break:break-all">${esc(text)}</textarea></div>
+    <div class="row">${HOSTED && navigator.share ? '<button class="pbtn" id="shsend" style="flex:1">LINEなどで送る</button>' : ''}<button class="sbtn" id="shcopy" style="flex:1">コピー</button></div>
+    <div class="row"><button class="sbtn" data-act="closeSheet" style="flex:1">閉じる</button></div>`, sh=>{
+    const box=sh.querySelector('#shbox');
+    sh.querySelector('#shcopy').onclick=async()=>{ try{ await navigator.clipboard.writeText(text); toast('コピーしました'); }catch(e){ box.focus(); box.select(); toast('選択しました。長押しでコピーしてください'); } };
+    const sd=sh.querySelector('#shsend'); if(sd) sd.onclick=async()=>{ try{ await navigator.share({title:'船じるし', text: kind==='day'?title:'船じるしのバックアップ', url:text}); }catch(e){} };
+  });
+}
+
+/* 日の内容を短いコードにする(c形式)。キー名を省き、席・印は番号で表す。配置は含めない */
+const LT=['num','name','memo'];
+async function encodeDayCode(day){
+  const mIdx=m=> m ? CONFIG.marks.findIndex(x=>x.id===m) : -1;
+  const gids=Object.keys(day.groups||{});
+  const groups=gids.map(g=>{ const x=day.groups[g]; return [x.letter, x.num??-1, x.same?1:0, mIdx(x.mark)]; });
+  const seats=[]; ORDER.forEach((id,i)=>{ const t=day.seats[id]; if(!t) return;
+    seats.push([i, t.num??-1, LT.indexOf(t.ltype||'num'), t.label||'', t.gid?gids.indexOf(t.gid):-1, mIdx(t.mark)]); });
+  const arr=[2, day.id, day.date, day.noKuji?1:0, day.tailSplit?1:0, day.nextNum||1, groups, seats];
+  const raw=new TextEncoder().encode(JSON.stringify(arr));
+  if(typeof CompressionStream==='function'){ try{ const z=await pipe(raw, CompressionStream, 'deflate-raw'); if(z.length<raw.length) return 'cz'+b64u.enc(z); }catch(e){} }
+  return 'cj'+b64u.enc(raw);
+}
+async function decodeDayCode(code){
+  let u8=b64u.dec(code.slice(2));
+  if(code[1]==='z'){ if(typeof DecompressionStream!=='function') throw new Error('old'); u8=await pipe(u8, DecompressionStream, 'deflate-raw'); }
+  else if(code[1]!=='j') throw new Error('form');
+  const a=JSON.parse(new TextDecoder().decode(u8));
+  if(!Array.isArray(a) || a[0]!==2) throw new Error('form');
+  const [ , id, date, noKuji, tailSplit, nextNum, groups, seats]=a;
+  const mid=i=> i>=0 && CONFIG.marks[i] ? CONFIG.marks[i].id : null;
+  const day={id:id||newId(), date, seats:{}, groups:{}, nextNum, groupMode:null, tailSplit:!!tailSplit, noKuji:!!noKuji, groupSeq:groups.length};
+  const gids=groups.map((g,i)=>{ const gid='g'+id+'_'+i; day.groups[gid]={id:gid, letter:g[0], num:g[1]<0?null:g[1], size:0, same:!!g[2], mark:mid(g[3])}; return gid; });
+  for(const [i,num,lt,label,gi,m] of seats){ const sid=ORDER[i]; if(!sid) continue;
+    day.seats[sid]={num:num<0?null:num, ltype:LT[lt]||'num', label, gid:gi>=0?gids[gi]:null, mark:mid(m)};
+    if(gi>=0) day.groups[gids[gi]].size++; }
+  return {app:'funajirushi', v:2, kind:'day', day};
+}
+function openCodeSheet(){
+  openSheet(`<h3>共有コードで開く</h3><div class="muted">LINEなどで受け取ったコードを長押しでコピーして、下に貼り付けてください。</div>
+    <div class="field"><textarea id="codebox" rows="4" style="width:100%;font:inherit;font-size:14px;padding:10px;border-radius:12px;border:1.5px solid var(--line);background:var(--bg);color:var(--ink)" placeholder="ここに貼り付け"></textarea><div class="err" id="codeerr"></div></div>
+    <div class="row"><button class="sbtn" data-act="closeSheet" style="flex:1">やめる</button><button class="pbtn" id="codeok" style="flex:2">開く</button></div>`, sh=>{
+    const box=sh.querySelector('#codebox'), err=sh.querySelector('#codeerr');
+    box.oninput=()=>{ err.textContent=''; };
+    sh.querySelector('#codeok').onclick=async()=>{
+      if(!box.value.trim()){ err.textContent='コードを貼り付けてください'; return; }
+      try{ const obj=await decodeShare(box.value); closeSheet(); applyImport(obj); }
+      catch(e){ err.textContent = e.message==='old' ? 'このスマホのブラウザが古く、開けません。ブラウザを更新してください。' : '開けませんでした。コードが途中で切れていないか確認してください。'; }
+    };
+    setTimeout(()=>box.focus(),50);
+  });
+}
+function applyImport(obj){
+  if(obj.kind==='all'){
+    let add=0;
+    for(const r of (obj.records||[])){ const i=app.records.findIndex(x=>x.day.id===r.day.id); if(i<0){ app.records.push(r); add++; } else if(app.records[i].savedAt<r.savedAt) app.records[i]=r; }
+    if(!Object.keys(app.day.seats).length && obj.day){ app.day=obj.day; app.past=[]; app.future=[]; }
+    if(obj.layout && !Object.keys(app.layout.pos||{}).length) app.layout=obj.layout;
+    app.records.sort((a,b)=>a.day.date<b.day.date?-1:a.day.date>b.day.date?1:a.savedAt-b.savedAt);
+    save(); render(); toast(`バックアップから戻しました(記録 ${add}件を追加)`); return;
+  }
+  const day=obj.day; if(!day||!day.seats) throw new Error('form');
+  if(Object.keys(app.day.seats).length && app.day.id!==day.id) storeRecord();
+  app.day=JSON.parse(JSON.stringify(day)); if(!app.day.id) app.day.id=newId();
+  if(obj.layout && !Object.keys(app.layout.pos||{}).length && Object.keys(obj.layout.pos||{}).length) app.layout.pos=obj.layout.pos;
+  app.past=[]; app.future=[]; app.tab='quick'; ui.editLayout=false;
+  storeRecord(); save(); render(); window.scrollTo(0,0); toast(`${fmtDate(day.date)}の内容を開きました`);
+}
+function confirmImport(obj){
+  const day=obj.kind==='all' ? null : obj.day;
+  openSheet(`<h3>${obj.kind==='all'?'バックアップを読み込みますか?':'共有された内容を開きますか?'}</h3>
+    <div class="muted">${obj.kind==='all'?`記録 ${(obj.records||[]).length}件。今ある記録は消えません。`:`${fmtDate(day.date)}・${Object.keys(day.seats).length}人。今の内容は記録に残してから開きます。`}</div>
+    <div class="row"><button class="sbtn" data-act="closeSheet" style="flex:1">やめる</button><button class="pbtn" id="impok" style="flex:2">開く</button></div>`, sh=>{
+    sh.querySelector('#impok').onclick=()=>{ closeSheet(); try{ applyImport(obj); }catch(e){ toast('読み込めませんでした'); } };
+  });
+}
+async function importFromBox(){
+  const box=document.getElementById('impbox'), err=document.getElementById('imperr'); if(!box) return;
+  if(!box.value.trim()){ err.textContent='リンクかコードを貼り付けてください'; return; }
+  try{ const obj=await decodeShare(box.value); err.textContent=''; box.value=''; confirmImport(obj); }
+  catch(e){ err.textContent = e.message==='old' ? 'このスマホのブラウザが古く、読み込めません。ブラウザを更新してください。' : '読み込めませんでした。リンクかコードが途中で切れていないか確認してください。'; }
+}
+async function importFromHash(){
+  if(!/[#&]s=/.test(location.hash)) return;
+  const h=location.hash;
+  try{ history.replaceState(null,'',location.pathname+location.search); }catch(e){}
+  try{ confirmImport(await decodeShare(h)); }catch(e){ toast('共有リンクを読み込めませんでした'); }
+}
+function setupHosted(){
+  if(!HOSTED) return;
+  const add=(tag,attrs)=>{ const el=document.createElement(tag); for(const k in attrs) el.setAttribute(k,attrs[k]); document.head.appendChild(el); };
+  add('link',{rel:'manifest', href:'manifest.webmanifest'});
+  add('link',{rel:'apple-touch-icon', href:'icon-180.png'});
+  add('meta',{name:'apple-mobile-web-app-capable', content:'yes'});
+  add('meta',{name:'apple-mobile-web-app-title', content:'船じるし'});
+  add('meta',{name:'theme-color', content:'#0D4C63'});
+  try{ if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js'); }catch(e){}
+  try{ navigator.storage && navigator.storage.persist && navigator.storage.persist(); }catch(e){}
+}
+
+setupHosted(); load(); render(); cloudInit(); importFromHash();
+window.addEventListener('hashchange', importFromHash);
+</script>
+</body></html>
