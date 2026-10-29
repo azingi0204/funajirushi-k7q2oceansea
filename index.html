@@ -223,7 +223,7 @@ function usage(d){ // mark -> {units:[], owners:Set}
   return r;
 }
 function dupMarks(d){ const us=usage(d); return Object.keys(us).filter(m=>us[m].owners.size>1); }
-function availableMarks(d){ return CONFIG.marks.filter(m=> m.kind!=='tail' || (d.tailSplit ? !!m.ud : !m.ud)); }
+function availableMarks(d){ return CONFIG.marks; } // 尻尾切り・上・下は常に個別に選べる(所有者要望 2026-10-29)
 function emptyCount(d){ return ORDER.filter(id=>!d.seats[id]).length; }
 function pos(id){ return app.layout.pos[id] || {x:SEAT[id].x, y:SEAT[id].y}; }
 function setMarkOnUnit(d,u,mid){ const g=u.gid&&d.groups[u.gid]; if(g&&g.same) g.mark=mid; else d.seats[u.seats[0]].mark=mid; }
@@ -344,10 +344,10 @@ function render(){
     if(!Object.keys(d.seats).length) h+=`<div class="banner info"><div class="grow">共有コードを受け取った方は、ここから開けます。</div><button data-act="openCodeSheet">コードで開く</button></div>`;
     h+=boatHTML(d,'kuji');
   } else if(tab==='mark'){
-    const n=units(d).length, max=d.tailSplit?10:9, dups=dupMarks(d), unset=units(d).filter(u=>!u.mark).length;
-    h+=`<div class="status"><div class="txt"><div class="big">印 <b>${n}</b>通り<span class="sub" style="font-size:14px"> / 最大${max}</span></div><div class="sub">${unset?`印がまだ ${unset}`:'全員に印が付いています'}</div></div></div>
+    const n=units(d).length, max=CONFIG.marks.length, dups=dupMarks(d), unset=units(d).filter(u=>!u.mark).length;
+    h+=`<div class="status"><div class="txt"><div class="big">印 <b>${n}</b>通り<span class="sub" style="font-size:14px"> / 最大${max}</span></div><div class="sub">${!n?'まだ誰もいません':unset?`印がまだ ${unset}`:'全員に印が付いています'}</div></div></div>
     <div class="tailsw"><span>尻尾切り</span><div class="seg"><button data-act="mergeTail" aria-pressed="${!d.tailSplit}">1種類</button><button data-act="splitTail" aria-pressed="${d.tailSplit}">上・下に分ける</button></div></div>`;
-    if(n>10) h+=`<div class="banner err"><div class="grow">印が足りません(${n}通り)。同じ印を重複して付けてください。</div></div>`;
+    if(n>CONFIG.marks.length) h+=`<div class="banner err"><div class="grow">印が足りません(${n}通り)。同じ印を重複して付けてください。</div></div>`;
     if(dups.length) h+=`<div class="banner err"><div class="grow">同じ印が別の人に付いています: ${dups.map(m=>MARK[m].name).join('、')}</div><button data-act="gotoQuick">確認</button></div>`;
     if(!n) h+=`<div class="muted" style="margin:-2px 0 8px">席をタップすると、くじの番号がなくても印を付けられます。</div>`;
     else h+=`<div class="muted" style="margin:-2px 0 8px">席をタップして印を選ぶ。空席もそのまま印を付けられます。赤い輪は印がまだの席です。</div>`;
@@ -490,7 +490,7 @@ function openMark(id){
   const d=app.day, s=d.seats[id]; const u=s?unitOfSeat(d,id):{key:'s:'+id, gid:null, seats:[id], mark:null}; const g=s&&s.gid&&d.groups[s.gid];
   const use=usage(d), me=ownerOf(u);
   let armed=null;
-  const who = s ? u.seats.map(x=>`${seatTag(d,x)} ${labelHTML(d.seats[x])}`).join('、') : `${SEAT[id].name}(空席・番号なしで印を付けます)`;
+  const who = s ? u.seats.map(x=>`${seatTag(d,x)} ${labelHTML(d.seats[x])}`).join('、') : '空席(番号なしで印を付けます)';
   const marks=availableMarks(d);
   openSheet(`<h3>印を選ぶ</h3><div class="muted">${g&&g.same?`団体${esc(g.letter)}の${u.seats.length}人全員に付きます`:`${SEAT[id].name}: ${who}`}</div>
     ${g?`<div class="seg" id="gs"><button data-v="same" aria-pressed="${g.same}">団体で同じ印</button><button data-v="sep" aria-pressed="${!g.same}">別々の印</button></div>`:''}
