@@ -139,7 +139,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--accent);outline
 .tailsw>span{font-weight:700;font-size:14px;flex:none}
 .tailsw .seg{flex:1;margin-top:0}
 .rbtns{display:flex;gap:8px;padding-bottom:12px}
-.toast{pointer-events:none;position:fixed;left:50%;top:calc(env(safe-area-inset-top,0px) + 6px);transform:translateX(-50%);z-index:40;background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:12px;font-size:14px;font-weight:700;max-width:calc(100% - 32px);text-align:center}
+.toast{pointer-events:none;position:fixed;z-index:40;background:var(--ink);color:var(--bg);padding:8px 12px;border-radius:12px;font-size:13px;font-weight:700;line-height:1.35;text-align:left;box-sizing:border-box}
 details{border-top:1px solid var(--line)}
 details summary{min-height:52px;display:flex;align-items:center;gap:8px;font-weight:700;cursor:pointer;list-style:none}
 details summary::-webkit-details-marker{display:none}
@@ -575,7 +575,15 @@ function armConfirm(btn, fn){
 }
 let toastTimer=null;
 function toast(msg){ let el=document.querySelector('.toast'); if(!el){ el=document.createElement('div'); el.className='toast'; el.setAttribute('role','status'); document.body.appendChild(el); }
-  el.textContent=msg; el.hidden=false; clearTimeout(toastTimer); toastTimer=setTimeout(()=>el.hidden=true, 1900); }
+  el.textContent=msg; el.hidden=false; placeToast(el); clearTimeout(toastTimer); toastTimer=setTimeout(()=>el.hidden=true, 1900); }
+/* 通知は左上(日付の場所)に出し、「戻す」「やり直す」ボタンに重ねない */
+function placeToast(el){
+  const undo=document.querySelector('.top .hbtn'), top=document.querySelector('.top');
+  if(undo && top){ const r=undo.getBoundingClientRect(), t=top.getBoundingClientRect();
+    const left=Math.max(8, t.left); el.style.left=left+'px'; el.style.top=Math.max(4, t.top)+'px';
+    el.style.width=Math.max(140, r.left-left-8)+'px'; el.style.maxWidth=''; el.style.transform='none'; }
+  else { el.style.left='50%'; el.style.top='calc(env(safe-area-inset-top,0px) + 6px)'; el.style.width='auto'; el.style.maxWidth='calc(100% - 32px)'; el.style.transform='translateX(-50%)'; }
+}
 
 /* ===== 入力 ===== */
 document.addEventListener('click', e=>{
