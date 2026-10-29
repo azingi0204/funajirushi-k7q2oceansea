@@ -235,6 +235,8 @@ function usage(d){ // mark -> {units:[], owners:Set}
 function dupMarks(d){ const us=usage(d); return Object.keys(us).filter(m=>us[m].owners.size>1); }
 function availableMarks(d){ return CONFIG.marks; } // 尻尾切り・上・下は常に個別に選べる(所有者要望 2026-10-29)
 function emptyCount(d){ return ORDER.filter(id=>!d.seats[id]).length; }
+/* 団体やくじ番号を付けられる席 = 空席 + 番号のない席(くじなしの間や印画面で入れた席) */
+function openCount(d){ return ORDER.filter(id=>!d.seats[id] || d.seats[id].num==null).length; }
 function pos(id){ return app.layout.pos[id] || {x:SEAT[id].x, y:SEAT[id].y}; }
 function setMarkOnUnit(d,u,mid){ const g=u.gid&&d.groups[u.gid]; if(g&&g.same) g.mark=mid; else d.seats[u.seats[0]].mark=mid; }
 function unitOfSeat(d,id){ return units(d).find(u=>u.seats.includes(id)); }
@@ -346,10 +348,10 @@ function render(){
   } else if(tab==='kuji'){
     if(d.groupMode){ const g=d.groups[d.groupMode.gid];
       h+=`<div class="status group"><div class="txt"><div class="big">団体${esc(g.letter)} ${g.num!=null?`<b>${g.num}</b>番`:''}</div><div class="sub">残り${d.groupMode.remaining}人。空き席をタップ</div></div><button class="sbtn" data-act="endGroup">団体終了</button></div>`;
-      if(!emptyCount(d)) h+=`<div class="banner warn"><div class="grow">空き席がありません。「団体終了」を押してください。</div></div>`;
+      if(!openCount(d)) h+=`<div class="banner warn"><div class="grow">空き席がありません。「団体終了」を押してください。</div></div>`;
     } else {
       const chips = `<div class="chips"><button class="chipbtn" data-act="kujiToggle" aria-label="くじ番号の使う・使わないを切り替え">くじ番号: <b>${d.noKuji?'使わない':'使う'}</b> ⇄</button>${Object.keys(d.seats).length?'':'<button class="chipbtn acc" data-act="openCodeSheet">共有コードで開く</button>'}</div>`;
-      h+= `<div class="status"><div class="txt"><div class="big">${d.noKuji?'くじなし':`次は<b>${d.nextNum}</b>番`}</div><div class="sub">${!emptyCount(d)?'満席です':d.noKuji?'空き席をタップで名前・一言':'空き席をタップで決定'}</div>${chips}</div><button class="pbtn" data-act="startGroup" ${emptyCount(d)<2?'disabled style="opacity:.4"':''}>団体</button></div>`;
+      h+= `<div class="status"><div class="txt"><div class="big">${d.noKuji?'くじなし':`次は<b>${d.nextNum}</b>番`}</div><div class="sub">${d.noKuji?(emptyCount(d)?'空き席をタップで名前・一言':'満席です'):emptyCount(d)?'空き席をタップで決定':openCount(d)?'番号のない席をタップで番号':'満席です'}</div>${chips}</div><button class="pbtn" data-act="startGroup" ${openCount(d)<2?'disabled style="opacity:.4"':''}>団体</button></div>`;
     }
     h+=boatHTML(d,'kuji');
   } else if(tab==='mark'){
@@ -421,15 +423,15 @@ function openSheet(html, onMount){ const L=document.getElementById('layer'); L.i
 function closeSheet(){ document.getElementById('layer').innerHTML=''; }
 
 function openGroupStart(){
-  let n=2; const max=emptyCount(app.day);
+  let n=2; const max=openCount(app.day);
   const nk=!!app.day.noKuji;
   openSheet(`<h3>団体を決める</h3><div class="muted">${nk?'この人数分の席を、同じ団体にします。':`次の<b>${app.day.nextNum}番</b>を、この人数分の席に付けます。`}</div>
-    <div class="field"><label>人数(空き${max}席)</label><div class="stepper"><button data-s="-1" aria-label="減らす">−</button><output id="gn">2</output><button data-s="1" aria-label="増やす">＋</button></div><div class="err" id="gerr"></div></div>
+    <div class="field"><label>人数(付けられる席 ${max})</label><div class="stepper"><button data-s="-1" aria-label="減らす">−</button><output id="gn">2</output><button data-s="1" aria-label="増やす">＋</button></div><div class="err" id="gerr"></div></div>
     <div class="row"><button class="sbtn" data-act="closeSheet" style="flex:1">やめる</button><button class="pbtn" id="gok" style="flex:2">開始</button></div>`, sh=>{
     const out=sh.querySelector('#gn'), err=sh.querySelector('#gerr');
     sh.querySelectorAll('[data-s]').forEach(b=>b.onclick=()=>{ n=Math.max(2,Math.min(12,n+Number(b.dataset.s))); out.textContent=n; err.textContent=''; });
     sh.querySelector('#gok').onclick=()=>{
-      if(n>max){ err.textContent=`空き席は${max}席です。人数を${max}人以下にしてください。`; return; }
+      if(n>max){ err.textContent=`付けられる席は${max}です。人数を${max}人以下にしてください。`; return; }
       closeSheet();
       commit(d=>{ const gid='g'+Date.now().toString(36)+d.groupSeq; const letter=CONFIG.groupLetters[d.groupSeq % CONFIG.groupLetters.length]; d.groupSeq++;
         d.groups[gid]={id:gid, letter, num: d.noKuji?null:d.nextNum, size:n, same:true, mark:null};
@@ -457,9 +459,11 @@ function assignSeat(id){
 /* 番号のない席(くじなしの間や印画面で入れた席)に、次のくじ番号を付ける。名前・一言・印はそのまま。団体なら全員に同じ番号 */
 function numberSeat(id){
   const d0=app.day, s0=d0.seats[id], g0=s0.gid&&d0.groups[s0.gid];
-  if(d0.groupMode && !g0){ // 団体を決めている途中なら、その団体に加える
+  if(d0.groupMode){ // 団体を決めている途中なら、その団体に加える(くじなしの間に別の団体だった席も移す)
     const g=d0.groups[d0.groupMode.gid];
-    commit(d=>{ const t=d.seats[id]; t.num=g.num; t.gid=g.id; d.groupMode.remaining--; if(d.groupMode.remaining<=0){ d.groupMode=null; if(g.num!=null) d.nextNum=g.num+1; } },
+    commit(d=>{ const t=d.seats[id]; const old=t.gid&&t.gid!==g.id&&d.groups[t.gid];
+      t.num=g.num; t.gid=g.id; d.groupMode.remaining--;
+      if(old){ const left=ORDER.filter(k=>d.seats[k]&&d.seats[k].gid===old.id).length; if(left) old.size=left; else delete d.groups[old.id]; } if(d.groupMode.remaining<=0){ d.groupMode=null; if(g.num!=null) d.nextNum=g.num+1; } },
       `${SEAT[id].name}を団体${g.letter}に${g.num!=null?`(${g.num}番)`:''}`);
     return;
   }
@@ -611,7 +615,9 @@ document.addEventListener('click', e=>{
   if(seat && !ui.editLayout){ const id=seat.dataset.seat, s=app.day.seats[id];
     if(app.tab==='kuji'){
       const kuji = !app.day.noKuji || app.day.groupMode;
+      const gm=app.day.groupMode;
       if(!s) kuji ? assignSeat(id) : openEdit(id);
+      else if(gm && s.num==null && s.gid!==gm.gid) numberSeat(id);   // 団体を決めている途中: 番号のない席も団体に加える
       else if(s.num==null && !app.day.noKuji) numberSeat(id);   // 番号のない席は、くじ番号を使う時は1タップで番号を付ける
       else openEdit(id);
     }
