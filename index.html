@@ -357,7 +357,7 @@ function render(){
     h+=boatHTML(d,'kuji');
   } else if(tab==='mark'){
     const n=units(d).length, max=CONFIG.marks.length, dups=dupMarks(d), unset=units(d).filter(u=>!u.mark).length;
-    h+=`<div class="status"><div class="txt"><div class="big">印 <b>${n}</b>通り<span class="sub" style="font-size:14px"> / 最大${max}</span></div><div class="sub">${!n?'席をタップで印(くじ番号なしでも可)':unset?`印がまだ ${unset}`:'全員に印が付いています'}</div><div class="chips"><button class="chipbtn" data-act="${d.tailSplit?'mergeTail':'splitTail'}" aria-label="付け済みの尻尾切りを一括で切り替え">尻尾切り一括: <b>${d.tailSplit?'上・下':'1種類'}</b> ⇄</button></div></div></div>`;
+    h+=`<div class="status"><div class="txt"><div class="big">印 <b>${n}</b>通り<span class="sub" style="font-size:14px"> / 最大${max}</span></div><div class="sub">${!n?'席をタップで印(くじ番号なしでも可)':unset?`印がまだ ${unset}`:'全員に印が付いています'}</div></div></div>`;
     // 重複・不足の警告は出さない(所有者裁定 2026-10-29: きっちり管理する用途ではない)
     h+=boatHTML(d,'mark');
   } else if(tab==='quick'){
@@ -542,18 +542,6 @@ function openMark(id){
     });
   });
 }
-function mergeTail(){
-  const d=app.day, n=units(d).length, use=usage(d);
-  if(!d.tailSplit) return;
-  if(n>=CONFIG.splitAt){ toast(`印が${n}通りあるため、尻尾切りは1つに戻せません`); return; }
-  if(use.tailUp && use.tailDown){ toast('上と下の両方が使われています。どちらかの印を変えてから戻してください'); return; }
-  commit(dd=>{ dd.tailSplit=false; const f=m=>(m==='tailUp'||m==='tailDown')?'tail':m;
-    for(const id in dd.seats) dd.seats[id].mark=f(dd.seats[id].mark); for(const gid in dd.groups) dd.groups[gid].mark=f(dd.groups[gid].mark); }, '尻尾切りを1種類に戻しました');
-}
-function splitTail(){
-  if(app.day.tailSplit) return;
-  commit(dd=>{ dd.tailSplit=true; for(const id in dd.seats) if(dd.seats[id].mark==='tail') dd.seats[id].mark='tailUp'; for(const gid in dd.groups) if(dd.groups[gid].mark==='tail') dd.groups[gid].mark='tailUp'; }, '尻尾切りを上・下に分けました');
-}
 function deleteRecord(id){
   const r=app.records.find(x=>x.day.id===id); if(!r) return;
   app.records=app.records.filter(x=>x.day.id!==id);
@@ -597,7 +585,7 @@ document.addEventListener('click', e=>{
   if(a){ const act=a.dataset.act;
     if(act==='closeSheet'){ if(e.target===a) closeSheet(); return; }
     if(a.dataset.confirm && !a.id){ if(!a.dataset.armed){ a.dataset.armed='1'; const o=a.textContent; a.textContent=a.dataset.confirm; setTimeout(()=>{ if(a.isConnected){ delete a.dataset.armed; a.textContent=o; } },3000); return; } }
-    ({undo, redo, startGroup:openGroupStart, endGroup, mergeTail, splitTail, newDay, saveRecord,
+    ({undo, redo, startGroup:openGroupStart, endGroup, newDay, saveRecord,
       openRecord:()=>openRecord(a.dataset.id), shareRecord:()=>openShare('day', a.dataset.id), shareAll:()=>openShare('all'), importCode:()=>importFromBox(),
       openCodeSheet:()=>openCodeSheet(),
       dismiss:()=>{ app.dismissed=app.dismissed||{}; app.dismissed[app.day.id+':'+a.dataset.k]=a.dataset.sig; save(); render(); },
