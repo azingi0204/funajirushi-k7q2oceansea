@@ -7,18 +7,18 @@
 :root{
   --bg:#EDF1EF; --surface:#FFFFFF; --deck:#E1E8E4; --ink:#13212A; --muted:#5A6A71; --line:#C7D2CF;
   --accent:#0D4C63; --accent-ink:#FFFFFF; --free-bg:#D6E9EE; --danger:#B3261E; --danger-bg:#FBE4E2;
-  --warn-bg:#FFF2CF; --warn-ink:#634500; --seat:#B4BDBB; --seat-ink:#26343B; --iconmark:#22323A; --iconmark-line:#22323A; --shade:rgba(10,20,25,.45);
+  --warn-bg:#FFF2CF; --warn-ink:#634500; --seat:#B4BDBB; --seat-ink:#26343B; --iconmark:repeating-linear-gradient(45deg,#EFE4CB 0 5px,#CDB68A 5px 10px); --iconmark-ink:#3A2A0E; --iconmark-line:#8A7246; --shade:rgba(10,20,25,.45);
   --f-body:"Zen Kaku Gothic New","Hiragino Sans","Noto Sans JP",system-ui,sans-serif;
   --f-num:"Barlow Condensed","Roboto Condensed","Arial Narrow",system-ui,sans-serif;
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
   --bg:#0C1417; --surface:#16222A; --deck:#1B2A31; --ink:#E4EDEF; --muted:#94A5AB; --line:#2E3E45;
   --accent:#6DBBD6; --accent-ink:#04212B; --free-bg:#163B47; --danger:#FF8A80; --danger-bg:#3A1A18;
-  --warn-bg:#3A2E0E; --warn-ink:#F2D27A; --seat:#5A676D; --seat-ink:#F0F4F5; --iconmark:#070D10; --iconmark-line:#C9D5D9; --shade:rgba(0,0,0,.6); color-scheme:dark}}
+  --warn-bg:#3A2E0E; --warn-ink:#F2D27A; --seat:#5A676D; --seat-ink:#F0F4F5; --shade:rgba(0,0,0,.6); color-scheme:dark}}
 :root[data-theme="dark"]{
   --bg:#0C1417; --surface:#16222A; --deck:#1B2A31; --ink:#E4EDEF; --muted:#94A5AB; --line:#2E3E45;
   --accent:#6DBBD6; --accent-ink:#04212B; --free-bg:#163B47; --danger:#FF8A80; --danger-bg:#3A1A18;
-  --warn-bg:#3A2E0E; --warn-ink:#F2D27A; --seat:#5A676D; --seat-ink:#F0F4F5; --iconmark:#070D10; --iconmark-line:#C9D5D9; --shade:rgba(0,0,0,.6); color-scheme:dark}
+  --warn-bg:#3A2E0E; --warn-ink:#F2D27A; --seat:#5A676D; --seat-ink:#F0F4F5; --shade:rgba(0,0,0,.6); color-scheme:dark}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{height:100%}
 html{touch-action:manipulation}  /* ダブルタップでのズームを止める(2本指の拡大は残す) */
@@ -62,7 +62,8 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--accent);outline
 .seat:active{transform:translate(-50%,-50%) scale(.93)}
 .seat.unset{color:var(--seat-ink);border-color:var(--seat)}
 .seat.colored{background:var(--fill);color:var(--fink);border-color:rgba(0,0,0,.28)}
-.seat.iconmark{background:var(--iconmark);color:#FFFFFF;border-color:var(--iconmark-line)}
+.seat.iconmark{background:var(--iconmark);color:var(--iconmark-ink);border-color:var(--iconmark-line)}
+.seat.blackmark{border-color:#8E9AA0}
 .seat.whitemark{border-color:#8E9AA0}
 .seat.empty{background:transparent;border:2.5px dashed var(--muted)}
 .mode-kuji .seat.empty{background:var(--free-bg);border-color:var(--accent);border-style:dashed}
@@ -90,7 +91,8 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--accent);outline
 .chip{display:inline-flex;align-items:center;justify-content:center;flex:none;border-radius:50%;position:relative}
 .chip.color{background:var(--c);border:2px solid rgba(0,0,0,.22)}
 .chip.c-white{border-color:#8E9AA0}
-.chip.icon{background:var(--iconmark);border:2px solid var(--iconmark-line);color:#FFFFFF}
+.chip.icon{background:var(--iconmark);border:2px solid var(--iconmark-line);color:var(--iconmark-ink)}
+.chip.c-black{border-color:#8E9AA0}
 .chip.icon svg{width:70%;height:70%}
 .chip .ud{position:absolute;right:-6px;bottom:-6px;background:#FFFFFF;color:#13212A;border:1px solid #13212A;font-size:11px;font-weight:700;border-radius:6px;padding:0 4px;line-height:16px}
 .card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-bottom:10px}
@@ -185,9 +187,13 @@ const CONFIG = {
     {id:'tailUp', name:'尻尾切り上', kind:'tail', ud:'上'},
     {id:'tailDown', name:'尻尾切り下', kind:'tail', ud:'下'},
     {id:'tailBoth', name:'尻尾切り上下', kind:'tail', ud:'上下'},
+    {id:'black',  name:'黒',     kind:'color', color:'#1B1B1B', ink:'#FFFFFF'},  // 共有コードの互換のため末尾に追加(表示順は markOrder)
   ],
 };
 const MARK = Object.fromEntries(CONFIG.marks.map(m=>[m.id,m]));
+// 画面に並べる順(色→無印→尻尾切り)。コードの番号は CONFIG.marks の並びのまま
+CONFIG.markOrder = ['red','orange','yellow','purple','blue','green','white','black','none','tail','tailUp','tailDown','tailBoth'];
+const MARKS_SORTED = [...CONFIG.markOrder.map(id=>MARK[id]).filter(Boolean), ...CONFIG.marks.filter(m=>!CONFIG.markOrder.includes(m.id))];
 const SEAT = Object.fromEntries(CONFIG.seats.map(s=>[s.id,s]));
 const ORDER = CONFIG.seats.map(s=>s.id);
 
@@ -236,7 +242,7 @@ function usage(d){ // mark -> {units:[], owners:Set}
   return r;
 }
 function dupMarks(d){ const us=usage(d); return Object.keys(us).filter(m=>us[m].owners.size>1); }
-function availableMarks(d){ return CONFIG.marks; } // 尻尾切り・上・下は常に個別に選べる(所有者要望 2026-10-29)
+function availableMarks(d){ return MARKS_SORTED; } // 尻尾切り・上・下は常に個別に選べる(所有者要望 2026-10-29)
 function emptyCount(d){ return ORDER.filter(id=>!d.seats[id]).length; }
 /* 団体やくじ番号を付けられる席 = 空席 + 番号のない席(くじなしの間や印画面で入れた席) */
 function openCount(d){ return ORDER.filter(id=>!d.seats[id] || d.seats[id].num==null).length; }
@@ -297,7 +303,7 @@ function seatHTML(id, d, mode, dups){
   if(!s){ cls+=' empty'; inner='<span class="free">空</span>'; aria+=' 空き席'; }
   else{
     const mid=markOf(d,id), m=MARK[mid];
-    if(m&&m.kind==='color'){ cls+=' colored'+(m.id==='white'?' whitemark':''); style+=`;--fill:${m.color};--fink:${m.ink}`; }
+    if(m&&m.kind==='color'){ cls+=' colored'+(m.id==='white'?' whitemark':m.id==='black'?' blackmark':''); style+=`;--fill:${m.color};--fink:${m.ink}`; }
     else if(m) cls+=' iconmark';   // 無印・尻尾切り: 濃い色にして白の印・未設定と見分ける
     else cls+=' unset';            // 未設定: 灰色
     const lab=labelHTML(s);
@@ -375,7 +381,7 @@ function quickHTML(d){
   const us=units(d); if(!us.length) return `<div class="card"><h2>早見表</h2><div class="muted">まだ席が決まっていません。</div>${d===app.day?'<button class="pbtn full" data-act="openCodeSheet">共有コードで開く</button>':''}</div>`;
   const use=usage(d), dups=dupMarks(d);
   let h=`<div class="card"><h2>印 → だれ</h2>`;
-  const order=CONFIG.marks.filter(m=>use[m.id]);
+  const order=MARKS_SORTED.filter(m=>use[m.id]);
   if(!order.length) h+=`<div class="muted">まだ印が付いていません。「印」タブで付けてください。</div>`;
   for(const m of order){
     const rows=use[m.id].units.flatMap(u=>u.seats.map(id=>{ const s=d.seats[id], g=s.gid&&d.groups[s.gid];
