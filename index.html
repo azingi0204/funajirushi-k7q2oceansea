@@ -7,18 +7,18 @@
 :root{
   --bg:#EDF1EF; --surface:#FFFFFF; --deck:#E1E8E4; --ink:#13212A; --muted:#5A6A71; --line:#C7D2CF;
   --accent:#0D4C63; --accent-ink:#FFFFFF; --free-bg:#D6E9EE; --danger:#B3261E; --danger-bg:#FBE4E2;
-  --warn-bg:#FFF2CF; --warn-ink:#634500; --seat:#FFFFFF; --shade:rgba(10,20,25,.45);
+  --warn-bg:#FFF2CF; --warn-ink:#634500; --seat:#B4BDBB; --seat-ink:#26343B; --iconmark:#22323A; --iconmark-line:#22323A; --shade:rgba(10,20,25,.45);
   --f-body:"Zen Kaku Gothic New","Hiragino Sans","Noto Sans JP",system-ui,sans-serif;
   --f-num:"Barlow Condensed","Roboto Condensed","Arial Narrow",system-ui,sans-serif;
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
   --bg:#0C1417; --surface:#16222A; --deck:#1B2A31; --ink:#E4EDEF; --muted:#94A5AB; --line:#2E3E45;
   --accent:#6DBBD6; --accent-ink:#04212B; --free-bg:#163B47; --danger:#FF8A80; --danger-bg:#3A1A18;
-  --warn-bg:#3A2E0E; --warn-ink:#F2D27A; --seat:#22313A; --shade:rgba(0,0,0,.6); color-scheme:dark}}
+  --warn-bg:#3A2E0E; --warn-ink:#F2D27A; --seat:#5A676D; --seat-ink:#F0F4F5; --iconmark:#070D10; --iconmark-line:#C9D5D9; --shade:rgba(0,0,0,.6); color-scheme:dark}}
 :root[data-theme="dark"]{
   --bg:#0C1417; --surface:#16222A; --deck:#1B2A31; --ink:#E4EDEF; --muted:#94A5AB; --line:#2E3E45;
   --accent:#6DBBD6; --accent-ink:#04212B; --free-bg:#163B47; --danger:#FF8A80; --danger-bg:#3A1A18;
-  --warn-bg:#3A2E0E; --warn-ink:#F2D27A; --seat:#22313A; --shade:rgba(0,0,0,.6); color-scheme:dark}
+  --warn-bg:#3A2E0E; --warn-ink:#F2D27A; --seat:#5A676D; --seat-ink:#F0F4F5; --iconmark:#070D10; --iconmark-line:#C9D5D9; --shade:rgba(0,0,0,.6); color-scheme:dark}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{height:100%}
 html{touch-action:manipulation}  /* ダブルタップでのズームを止める(2本指の拡大は残す) */
@@ -60,7 +60,9 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--accent);outline
 .blabel{position:absolute;transform:translate(-50%,-50%);font-size:3.6cqw;color:var(--muted);font-weight:700;pointer-events:none;letter-spacing:.1em}
 .seat{position:absolute;width:18%;aspect-ratio:1;transform:translate(-50%,-50%);border-radius:50%;background:var(--seat);border:2.5px solid var(--ink);display:flex;align-items:center;justify-content:center;padding:0;line-height:1.05;transition:transform .12s}
 .seat:active{transform:translate(-50%,-50%) scale(.93)}
+.seat.unset{color:var(--seat-ink);border-color:var(--seat)}
 .seat.colored{background:var(--fill);color:var(--fink);border-color:rgba(0,0,0,.28)}
+.seat.iconmark{background:var(--iconmark);color:#FFFFFF;border-color:var(--iconmark-line)}
 .seat.whitemark{border-color:#8E9AA0}
 .seat.empty{background:transparent;border:2.5px dashed var(--muted)}
 .mode-kuji .seat.empty{background:var(--free-bg);border-color:var(--accent);border-style:dashed}
@@ -75,7 +77,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--accent);outline
 .seat .gb{bottom:-12%;left:50%;transform:translateX(-50%);height:36%;padding:0 10%;background:var(--accent);color:var(--accent-ink);font-size:3.2cqw}
 .seat .mb{top:-10%;right:-10%;width:46%;height:46%;background:var(--surface);color:var(--ink);border:1.5px solid var(--ink)}
 .seat .mb svg{width:72%;height:72%}
-.seat .mb.ud{background:var(--ink);color:var(--bg);font-size:3.6cqw;width:auto;min-width:46%;padding:0 6%}
+.seat .mb.ud{background:#FFFFFF;color:#13212A;border-color:#13212A;font-size:3.6cqw;width:auto;min-width:46%;padding:0 6%}
 .mode-mark .seat.nomark{box-shadow:0 0 0 3px var(--bg),0 0 0 5px var(--danger)}
 .mode-mark .seat.dup{box-shadow:0 0 0 3px var(--bg),0 0 0 6px var(--danger)}
 .editing .seat{touch-action:none;cursor:grab;box-shadow:0 0 0 3px var(--warn-ink)}
@@ -88,9 +90,9 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--accent);outline
 .chip{display:inline-flex;align-items:center;justify-content:center;flex:none;border-radius:50%;position:relative}
 .chip.color{background:var(--c);border:2px solid rgba(0,0,0,.22)}
 .chip.c-white{border-color:#8E9AA0}
-.chip.icon{background:var(--surface);border:2px solid var(--ink);color:var(--ink)}
+.chip.icon{background:var(--iconmark);border:2px solid var(--iconmark-line);color:#FFFFFF}
 .chip.icon svg{width:70%;height:70%}
-.chip .ud{position:absolute;right:-6px;bottom:-6px;background:var(--ink);color:var(--bg);font-size:11px;font-weight:700;border-radius:6px;padding:0 4px;line-height:16px}
+.chip .ud{position:absolute;right:-6px;bottom:-6px;background:#FFFFFF;color:#13212A;border:1px solid #13212A;font-size:11px;font-weight:700;border-radius:6px;padding:0 4px;line-height:16px}
 .card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-bottom:10px}
 .card h2{font-size:15px;margin:0 0 8px}
 .qrow{display:flex;gap:12px;align-items:center;padding:10px 0;border-top:1px solid var(--line)}
@@ -182,6 +184,7 @@ const CONFIG = {
     {id:'tail',   name:'尻尾切り', kind:'tail'},
     {id:'tailUp', name:'尻尾切り上', kind:'tail', ud:'上'},
     {id:'tailDown', name:'尻尾切り下', kind:'tail', ud:'下'},
+    {id:'tailBoth', name:'尻尾切り上下', kind:'tail', ud:'上下'},
   ],
 };
 const MARK = Object.fromEntries(CONFIG.marks.map(m=>[m.id,m]));
@@ -243,12 +246,8 @@ function unitOfSeat(d,id){ return units(d).find(u=>u.seats.includes(id)); }
 
 /* 変更後の自動処理: 10通りで尻尾切りを上下へ分割(戻すのは手動) */
 function afterChange(d){
-  if(!d.tailSplit && units(d).length >= CONFIG.splitAt){
-    d.tailSplit = true;
-    for(const id in d.seats) if(d.seats[id].mark==='tail') d.seats[id].mark='tailUp';
-    for(const gid in d.groups) if(d.groups[gid].mark==='tail') d.groups[gid].mark='tailUp';
-    return '印が'+CONFIG.splitAt+'通りになったので、尻尾切りを「上」と「下」に分けました';
-  }
+  // 以前は印が10通りで尻尾切りを自動で「上」に書き換えていたが、尻尾切り・上・下・上下を常に選べるようにしたため廃止
+  // (選んだ印を勝手に変えないため。2026-11-17)
   return '';
 }
 
@@ -280,7 +279,7 @@ const ICON = {
 };
 function chip(mid, px){
   const m=MARK[mid]; const st=`width:${px}px;height:${px}px`;
-  if(!m) return `<span class="chip icon" style="${st};border-style:dashed;border-color:var(--muted)"></span>`;
+  if(!m) return `<span class="chip" style="${st};background:var(--seat);border:2px solid var(--seat)" title="未設定"></span>`;
   if(m.kind==='color') return `<span class="chip color c-${m.id}" style="${st};--c:${m.color}"></span>`;
   return `<span class="chip icon" style="${st}">${ICON[m.kind]}${m.ud?`<span class="ud">${m.ud}</span>`:''}</span>`;
 }
@@ -299,6 +298,8 @@ function seatHTML(id, d, mode, dups){
   else{
     const mid=markOf(d,id), m=MARK[mid];
     if(m&&m.kind==='color'){ cls+=' colored'+(m.id==='white'?' whitemark':''); style+=`;--fill:${m.color};--fink:${m.ink}`; }
+    else if(m) cls+=' iconmark';   // 無印・尻尾切り: 濃い色にして白の印・未設定と見分ける
+    else cls+=' unset';            // 未設定: 灰色
     const lab=labelHTML(s);
     const hasNum = s.num!=null;
     if(lab){ const len=(s.label||'').length + (s.ltype==='name'?1:0); inner+=`<span class="lbl ${len>5?'s':len>3?'m':''}">${lab}</span>${hasNum?`<span class="nb">${s.num}</span>`:''}`; }
@@ -384,7 +385,7 @@ function quickHTML(d){
   h+=`</div>`;
   const unset=us.filter(u=>!u.mark);
   if(unset.length){
-    h+=`<div class="card"><h2>印がまだの人</h2>`+unset.flatMap(u=>u.seats.map(id=>{const s=d.seats[id],g=s.gid&&d.groups[s.gid]; return `<div class="qrow">${chip(null,28)}<div class="who"><div>${personText(d,id)}<span class="pos">${SEAT[id].name}</span>${g?`<span class="tag">団${esc(g.letter)}</span>`:''}</div></div></div>`;})).join('')+`</div>`;
+    h+=`<div class="card"><h2>未設定(印がまだの人)</h2>`+unset.flatMap(u=>u.seats.map(id=>{const s=d.seats[id],g=s.gid&&d.groups[s.gid]; return `<div class="qrow">${chip(null,28)}<div class="who"><div>${personText(d,id)}<span class="pos">${SEAT[id].name}</span>${g?`<span class="tag">団${esc(g.letter)}</span>`:''}</div></div></div>`;})).join('')+`</div>`;
   }
   return h;
 }
